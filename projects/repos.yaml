@@ -32,6 +32,7 @@ repositories:
   - name: openmrs-core
     git: https://github.com/openmrs/openmrs-core.git
     head: 494c57b334249fb4230d58986319deca21cb4151
+    java-version: 21
 
   - name: ruoyi-vue-pro
     git: https://github.com/YunaiV/ruoyi-vue-pro.git
@@ -48,16 +49,17 @@ repositories:
   - name: tms
     git: https://github.com/xiweicheng/tms.git
     head: 9510b7cca4cd1f82114e5df0c13a491da4d8d818
+    java-version: 8
 
   - name: thingsboard
     git: https://github.com/thingsboard/thingsboard.git
     head: b31176433e8065ae4cb2a285bcd5e03fce9014f5
-    max-memory: 16G
+    max-memory: 12G
 
   - name: yudao-cloud
     git: https://github.com/YunaiV/yudao-cloud.git
     head: 99ffe0fd41c2b783ef83e6c8704e6e264603b484
-    max-memory: 16G
+    max-memory: 12G
 
   - name: halo
     git: https://github.com/halo-dev/halo.git
@@ -67,6 +69,7 @@ repositories:
   - name: kkFileView
     git: https://github.com/kekingcn/kkFileView.git
     head: 92ca92bee6d4682f2eb6f388174d39afd2263874
+    java-version: 21
 
   - name: apollo
     git: https://github.com/apolloconfig/apollo.git
@@ -95,6 +98,7 @@ repositories:
   - name: WebGoat
     git: https://github.com/WebGoat/WebGoat.git
     head: d4238ab406f27eea4aff8c86443cafbc220431c4
+    java-version: 25
 
   - name: joyagent-jdgenie
     git: https://github.com/jd-opensource/joyagent-jdgenie.git
@@ -107,6 +111,7 @@ repositories:
   - name: spring-boot-seckill
     git: https://github.com/halegreen/spring-boot-seckill.git
     head: a0b979bbc533d9e2cae198f9e6f708b8c39861ea
+    java-version: 8
 
   - name: roncoo-education
     git: https://github.com/roncoo/roncoo-education.git

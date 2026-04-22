@@ -278,17 +278,8 @@ jobs:
           path: build
       - run: chmod +x build/opentaint
       - name: Clone project
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ matrix.project }}
-          ref: ${{ matrix.head }}
-          path: project-root
-          fetch-depth: 1
-        continue-on-error: true
-      - name: Clone project (fallback via git)
-        if: hashFiles('project-root/**') == ''
         run: |
-          git clone "${{ matrix.git }}" project-root
+          git clone --filter=blob:none "${{ matrix.git }}" project-root
           git -C project-root checkout "${{ matrix.head }}"
       - name: Compute cache key
         id: k

@@ -103,7 +103,9 @@ def run_pipeline(build_dir: Path, project_dir: Path, results_dir: Path,
         if not p.exists():
             raise FileNotFoundError(f"missing build artifact: {p}")
 
-    model_dir = results_dir / "project-model"
+    # Keep project-model OUTSIDE results_dir so it is never cached or uploaded
+    # as part of the per-project result bundle (multi-GB per project otherwise).
+    model_dir = results_dir.parent / f"{results_dir.name}-project-model"
     sarif = results_dir / "results.sarif"
     run_log = results_dir / "run.log"
     analyzer_log_dst = results_dir / "analyzer.log"
@@ -127,27 +129,32 @@ def run_pipeline(build_dir: Path, project_dir: Path, results_dir: Path,
         "--max-memory", max_memory,
     ]
 
+    model_dir.mkdir(parents=True, exist_ok=True)
     status: dict = {"status": "ok", "analyzer_status": None, "reason": None}
-    with run_log.open("w") as log_fp:
-        rc, _out, err = _run(compile_cmd, timeout, log_fp)
-        if rc != 0:
-            status["status"] = "error"
-            status["reason"] = f"compile failed rc={rc}: {(err or '').strip()[:400]}"
-            return status
+    try:
+        with run_log.open("w") as log_fp:
+            rc, _out, err = _run(compile_cmd, timeout, log_fp)
+            if rc != 0:
+                status["status"] = "error"
+                status["reason"] = f"compile failed rc={rc}: {(err or '').strip()[:400]}"
+                return status
 
-        rc, out, err = _run(scan_cmd, timeout, log_fp)
-        analyzer_log = _copy_analyzer_log(out, analyzer_log_dst)
-        status["analyzer_status"] = extract_analyzer_status(analyzer_log)
+            rc, out, err = _run(scan_cmd, timeout, log_fp)
+            analyzer_log = _copy_analyzer_log(out, analyzer_log_dst)
+            status["analyzer_status"] = extract_analyzer_status(analyzer_log)
 
-        sarif_written = sarif.exists() and sarif.stat().st_size > 0
-        if rc == 0 or sarif_written:
-            if rc != 0 and sarif_written:
-                status["reason"] = f"partial: scan rc={rc}, SARIF written"
-        else:
-            status["status"] = "error"
-            reason = f"Hard timeout after {timeout}s" if rc == -1 else (err or "").strip()[:400]
-            status["reason"] = f"scan failed rc={rc}: {reason}"
-    return status
+            sarif_written = sarif.exists() and sarif.stat().st_size > 0
+            if rc == 0 or sarif_written:
+                if rc != 0 and sarif_written:
+                    status["reason"] = f"partial: scan rc={rc}, SARIF written"
+            else:
+                status["status"] = "error"
+                reason = f"Hard timeout after {timeout}s" if rc == -1 else (err or "").strip()[:400]
+                status["reason"] = f"scan failed rc={rc}: {reason}"
+        return status
+    finally:
+        # The project-model can be multi-GB; we never need it after scan.
+        shutil.rmtree(model_dir, ignore_errors=True)
 
 
 def main() -> int:

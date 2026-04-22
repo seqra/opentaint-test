@@ -103,10 +103,18 @@ def _load(p: Path) -> dict:
 
 def compare_bundle(project: str, base_dir: Path, new_dir: Path,
                    compare_locations: bool, compare_columns: bool) -> dict:
-    base_sarif = _load(base_dir / "results.sarif")
-    new_sarif = _load(new_dir / "results.sarif")
+    base_sarif_path = base_dir / "results.sarif"
+    new_sarif_path = new_dir / "results.sarif"
+    base_sarif = _load(base_sarif_path)
+    new_sarif = _load(new_sarif_path)
     base_status = _load(base_dir / "status.json")
     new_status = _load(new_dir / "status.json")
+
+    # "No analysis result" means we could not parse any SARIF runs for that
+    # side — typically the scan crashed before writing any findings. We track
+    # it separately from "zero findings", which is a valid, clean result.
+    base_no_result = not (base_sarif_path.is_file() and base_sarif.get("runs"))
+    new_no_result = not (new_sarif_path.is_file() and new_sarif.get("runs"))
 
     base_tags = base_status.get("analyzer_status") or []
     new_tags = new_status.get("analyzer_status") or []
@@ -134,6 +142,8 @@ def compare_bundle(project: str, base_dir: Path, new_dir: Path,
         "new_status": new_tags,
         "base_error": base_error,
         "new_error": new_error,
+        "base_no_result": base_no_result,
+        "new_no_result": new_no_result,
         "status_regression": status_regression,
         "added": added,
         "removed": removed,
@@ -163,22 +173,33 @@ def render_markdown(diffs: list[dict]) -> str:
     fail_n = len(diffs) - pass_n
     status_deg_n = sum(1 for d in diffs if d["status_regression"])
 
+    no_result_n = sum(1 for d in diffs if d.get("base_no_result") or d.get("new_no_result"))
+
     lines = [
         f"# Regression test report",
         "",
-        f"**{pass_n} passed**, **{fail_n} failed**, **{status_deg_n} with analyzer-status regression**",
+        f"**{pass_n} passed**, **{fail_n} failed**, "
+        f"**{status_deg_n} with analyzer-status regression**, "
+        f"**{no_result_n} with no analysis result on at least one side**",
         "",
-        "| project | base status | new status | =findings | +findings | −findings | verdict |",
-        "|---|---|---|---:|---:|---:|---|",
+        "| project | base status | new status | =findings | +findings | −findings | verdict | notes |",
+        "|---|---|---|---:|---:|---:|---|---|",
     ]
     for d in sorted(diffs, key=lambda x: (x["verdict"] != "FAIL", x["project"])):
         flag = "❌ " if d["verdict"] == "FAIL" else ""
+        unchanged = "—" if (d.get("base_no_result") or d.get("new_no_result")) else d['counts'].get('unchanged', 0)
+        added = "—" if d.get("new_no_result") else d['counts']['added']
+        removed = "—" if d.get("base_no_result") else d['counts']['removed']
+        notes: list[str] = []
+        if d.get("base_no_result"): notes.append("**no base result**")
+        if d.get("new_no_result"):  notes.append("**no new result**")
+        if d.get("base_error"):     notes.append(f"base error: {d['base_error'][:80]}")
+        if d.get("new_error"):      notes.append(f"new error: {d['new_error'][:80]}")
         lines.append(
             f"| {flag}{d['project']} | {fmt_status(d['base_status'])} "
             f"| {fmt_status(d['new_status'])} "
-            f"| {d['counts'].get('unchanged', 0)} "
-            f"| {d['counts']['added']} | {d['counts']['removed']} "
-            f"| {d['verdict']} |"
+            f"| {unchanged} | {added} | {removed} "
+            f"| {d['verdict']} | {'; '.join(notes)} |"
         )
     return "\n".join(lines) + "\n"
 

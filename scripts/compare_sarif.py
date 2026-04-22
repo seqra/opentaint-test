@@ -190,11 +190,19 @@ def render_markdown(diffs: list[dict]) -> str:
         unchanged = "—" if (d.get("base_no_result") or d.get("new_no_result")) else d['counts'].get('unchanged', 0)
         added = "—" if d.get("new_no_result") else d['counts']['added']
         removed = "—" if d.get("base_no_result") else d['counts']['removed']
+        def _clean(s: str, limit: int = 120) -> str:
+            # Collapse whitespace and escape pipes so log output (which often
+            # contains '|') does not break the markdown table.
+            s = " ".join(s.split())
+            if len(s) > limit:
+                s = s[:limit] + "…"
+            return s.replace("|", "\\|")
+
         notes: list[str] = []
         if d.get("base_no_result"): notes.append("**no base result**")
         if d.get("new_no_result"):  notes.append("**no new result**")
-        if d.get("base_error"):     notes.append(f"base error: {d['base_error'][:80]}")
-        if d.get("new_error"):      notes.append(f"new error: {d['new_error'][:80]}")
+        if d.get("base_error"):     notes.append(f"base error: {_clean(d['base_error'])}")
+        if d.get("new_error"):      notes.append(f"new error: {_clean(d['new_error'])}")
         lines.append(
             f"| {flag}{d['project']} | {fmt_status(d['base_status'])} "
             f"| {fmt_status(d['new_status'])} "

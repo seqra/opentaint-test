@@ -112,14 +112,14 @@ def run_pipeline(build_dir: Path, project_dir: Path, results_dir: Path,
 
     # Placeholder experimental flag names — confirm via `opentaint --help --experimental`.
     compile_cmd = [
-        str(opentaint), "compile", "--quiet", "--debug",
+        str(opentaint), "compile", "--debug",
         "--experimental",
         "--autobuilder-jar", str(autobuilder_jar),
         "--output", str(model_dir),
         str(project_dir),
     ]
     scan_cmd = [
-        str(opentaint), "scan", "--quiet", "--debug",
+        str(opentaint), "scan", "--debug",
         "--experimental",
         "--analyzer-jar", str(analyzer_jar),
         "--ruleset", str(rules_dir),
@@ -129,14 +129,16 @@ def run_pipeline(build_dir: Path, project_dir: Path, results_dir: Path,
         "--max-memory", max_memory,
     ]
 
-    model_dir.mkdir(parents=True, exist_ok=True)
+    # Do NOT pre-create model_dir: `opentaint compile --output` may refuse to
+    # write into an already-existing directory (or produce inconsistent state).
     status: dict = {"status": "ok", "analyzer_status": None, "reason": None}
     try:
         with run_log.open("w") as log_fp:
-            rc, _out, err = _run(compile_cmd, timeout, log_fp)
+            rc, out, err = _run(compile_cmd, timeout, log_fp)
             if rc != 0:
                 status["status"] = "error"
-                status["reason"] = f"compile failed rc={rc}: {(err or '').strip()[:400]}"
+                msg = (err or out or "").strip()[:400] or "(no output)"
+                status["reason"] = f"compile failed rc={rc}: {msg}"
                 return status
 
             rc, out, err = _run(scan_cmd, timeout, log_fp)
@@ -149,7 +151,10 @@ def run_pipeline(build_dir: Path, project_dir: Path, results_dir: Path,
                     status["reason"] = f"partial: scan rc={rc}, SARIF written"
             else:
                 status["status"] = "error"
-                reason = f"Hard timeout after {timeout}s" if rc == -1 else (err or "").strip()[:400]
+                if rc == -1:
+                    reason = f"Hard timeout after {timeout}s"
+                else:
+                    reason = (err or out or "").strip()[:400] or "(no output)"
                 status["reason"] = f"scan failed rc={rc}: {reason}"
         return status
     finally:

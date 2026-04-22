@@ -65,12 +65,14 @@ def _key(f: dict, compare_locations: bool, compare_columns: bool) -> tuple:
 
 def diff_findings(base: list[dict], new: list[dict],
                   compare_locations: bool, compare_columns: bool
-                  ) -> tuple[list[dict], list[dict]]:
-    """Multiset diff. Returns (added, removed)."""
+                  ) -> tuple[list[dict], list[dict], int]:
+    """Multiset diff. Returns (added, removed, unchanged_count)."""
     base_keyed = [(_key(f, compare_locations, compare_columns), f) for f in base]
     new_keyed = [(_key(f, compare_locations, compare_columns), f) for f in new]
     base_counts = Counter(k for k, _ in base_keyed)
     new_counts = Counter(k for k, _ in new_keyed)
+
+    unchanged = sum(min(base_counts[k], new_counts.get(k, 0)) for k in base_counts)
 
     remaining = dict(base_counts)
     added: list[dict] = []
@@ -87,7 +89,7 @@ def diff_findings(base: list[dict], new: list[dict],
             remaining[k] -= 1
         else:
             removed.append(f)
-    return added, removed
+    return added, removed, unchanged
 
 
 def _load(p: Path) -> dict:
@@ -115,8 +117,8 @@ def compare_bundle(project: str, base_dir: Path, new_dir: Path,
 
     base_findings = _extract_findings(base_sarif) if base_sarif else []
     new_findings = _extract_findings(new_sarif) if new_sarif else []
-    added, removed = diff_findings(base_findings, new_findings,
-                                   compare_locations, compare_columns)
+    added, removed, unchanged = diff_findings(base_findings, new_findings,
+                                              compare_locations, compare_columns)
 
     fail_reasons = []
     if status_regression:
@@ -138,6 +140,9 @@ def compare_bundle(project: str, base_dir: Path, new_dir: Path,
         "counts": {
             "added": len(added),
             "removed": len(removed),
+            "unchanged": unchanged,
+            "base_total": len(base_findings),
+            "new_total": len(new_findings),
             "added_by_rule": dict(Counter(f["ruleId"] for f in added)),
             "removed_by_rule": dict(Counter(f["ruleId"] for f in removed)),
         },
@@ -163,14 +168,15 @@ def render_markdown(diffs: list[dict]) -> str:
         "",
         f"**{pass_n} passed**, **{fail_n} failed**, **{status_deg_n} with analyzer-status regression**",
         "",
-        "| project | base status | new status | +findings | −findings | verdict |",
-        "|---|---|---|---:|---:|---|",
+        "| project | base status | new status | =findings | +findings | −findings | verdict |",
+        "|---|---|---|---:|---:|---:|---|",
     ]
     for d in sorted(diffs, key=lambda x: (x["verdict"] != "FAIL", x["project"])):
         flag = "❌ " if d["verdict"] == "FAIL" else ""
         lines.append(
             f"| {flag}{d['project']} | {fmt_status(d['base_status'])} "
             f"| {fmt_status(d['new_status'])} "
+            f"| {d['counts'].get('unchanged', 0)} "
             f"| {d['counts']['added']} | {d['counts']['removed']} "
             f"| {d['verdict']} |"
         )

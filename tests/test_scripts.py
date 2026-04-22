@@ -50,43 +50,43 @@ def test_diff_no_changes():
     f = [("r1", "a.java", 10, 10, 1, 2)]
     base = compare_sarif._extract_findings(_sarif(f))
     new = compare_sarif._extract_findings(_sarif(f))
-    added, removed = compare_sarif.diff_findings(base, new, True, False)
-    assert added == [] and removed == []
+    added, removed, unchanged = compare_sarif.diff_findings(base, new, True, False)
+    assert added == [] and removed == [] and unchanged == 1
 
 
 def test_diff_added_and_removed_by_location():
     base = compare_sarif._extract_findings(_sarif([("r1", "a.java", 10, 10, 1, 2)]))
     new = compare_sarif._extract_findings(_sarif([("r1", "a.java", 20, 20, 1, 2)]))
-    added, removed = compare_sarif.diff_findings(base, new, True, False)
+    added, removed, unchanged = compare_sarif.diff_findings(base, new, True, False)
     assert len(added) == 1 and added[0]["startLine"] == 20
     assert len(removed) == 1 and removed[0]["startLine"] == 10
+    assert unchanged == 0
 
 
 def test_diff_rule_only_collapses():
     base = compare_sarif._extract_findings(_sarif([("r1", "a.java", 10, 10, 1, 2)]))
     new = compare_sarif._extract_findings(_sarif([("r1", "b.java", 20, 20, 1, 2)]))
-    added, removed = compare_sarif.diff_findings(base, new,
-                                                 compare_locations=False,
-                                                 compare_columns=False)
-    assert added == [] and removed == []
+    added, removed, unchanged = compare_sarif.diff_findings(
+        base, new, compare_locations=False, compare_columns=False)
+    assert added == [] and removed == [] and unchanged == 1
 
 
 def test_diff_columns_matter_when_enabled():
     base = compare_sarif._extract_findings(_sarif([("r1", "a.java", 10, 10, 1, 2)]))
     new = compare_sarif._extract_findings(_sarif([("r1", "a.java", 10, 10, 5, 6)]))
-    a, r = compare_sarif.diff_findings(base, new, True, compare_columns=False)
-    assert (a, r) == ([], [])
-    a, r = compare_sarif.diff_findings(base, new, True, compare_columns=True)
-    assert len(a) == 1 and len(r) == 1
+    a, r, u = compare_sarif.diff_findings(base, new, True, compare_columns=False)
+    assert (a, r, u) == ([], [], 1)
+    a, r, u = compare_sarif.diff_findings(base, new, True, compare_columns=True)
+    assert len(a) == 1 and len(r) == 1 and u == 0
 
 
 def test_diff_multiset_counts():
-    # base has two of the same finding, new has one: one removed.
+    # base has two of the same finding, new has one: one unchanged, one removed.
     f = ("r1", "a.java", 10, 10, 1, 2)
     base = compare_sarif._extract_findings(_sarif([f, f]))
     new = compare_sarif._extract_findings(_sarif([f]))
-    a, r = compare_sarif.diff_findings(base, new, True, False)
-    assert a == [] and len(r) == 1
+    a, r, u = compare_sarif.diff_findings(base, new, True, False)
+    assert a == [] and len(r) == 1 and u == 1
 
 
 # ── compare_sarif: bundle-level verdict and status regression ────────────────
@@ -174,12 +174,14 @@ def test_render_markdown_smoke():
         {"project": "p1", "verdict": "PASS",
          "base_status": ["complete"], "new_status": ["complete"],
          "status_regression": False,
-         "counts": {"added": 0, "removed": 0}},
+         "counts": {"added": 0, "removed": 0, "unchanged": 42}},
         {"project": "p2", "verdict": "FAIL",
          "base_status": ["complete"], "new_status": ["incomplete"],
          "status_regression": True,
-         "counts": {"added": 0, "removed": 0}},
+         "counts": {"added": 0, "removed": 0, "unchanged": 3}},
     ])
     assert "1 passed" in md and "1 failed" in md
     assert "❌ p2" in md
     assert "**incomplete**" in md
+    assert "=findings" in md
+    assert "| 42 |" in md

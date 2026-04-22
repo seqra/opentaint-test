@@ -119,12 +119,14 @@ jobs:
         with:
           name: probe-${{ matrix.project }}-${{ matrix.ref_kind }}
           path: probe-out/
+          retention-days: 1
       - name: Upload cached result bundle (hits only)
         if: steps.cache.outputs.cache-hit == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: result-${{ matrix.project }}-${{ matrix.ref_kind }}
           path: results-bundle/
+          retention-days: 1
 
   probe-collect:
     needs: probe
@@ -169,6 +171,7 @@ jobs:
         with:
           name: probe-misses
           path: misses.json
+          retention-days: 1
 
   build:
     needs: [resolve, probe-collect]
@@ -222,6 +225,7 @@ jobs:
         with:
           name: build-${{ matrix.sha }}
           path: build/
+          retention-days: 1
 
   analyze-matrix:
     needs: [resolve, probe-collect]
@@ -310,6 +314,7 @@ jobs:
         with:
           name: result-${{ matrix.project }}-${{ matrix.ref_kind }}
           path: results-bundle/
+          retention-days: 1
 
   compare:
     needs: [probe, analyze]
@@ -359,6 +364,7 @@ jobs:
           path: |
             diff/
             report.md
+          retention-days: 7
       - name: Fail if any project's verdict is FAIL
         run: |
           python - <<'PY'

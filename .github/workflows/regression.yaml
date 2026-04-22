@@ -1,0 +1,381 @@
+name: Regression test (base vs new)
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_ref:
+        description: Opentaint base ref (branch, tag, or SHA)
+        required: true
+      new_ref:
+        description: Opentaint new ref (branch, tag, or SHA)
+        required: true
+      compare_locations:
+        description: Compare finding locations (disable for ruleId-only match)
+        type: boolean
+        default: true
+      compare_columns:
+        description: Include location columns in finding key
+        type: boolean
+        default: false
+      projects_filter:
+        description: Comma-separated substrings; restricts project set
+        required: false
+        default: ""
+      max_parallel:
+        description: Max parallel analyze jobs
+        required: false
+        default: "8"
+
+env:
+  OPENTAINT_REPO: seqra/opentaint
+  PY_VERSION: "3.11"
+  JDK_VERSION: "17"
+  GO_VERSION: "1.25.x"
+
+jobs:
+
+  resolve:
+    runs-on: ubuntu-latest
+    outputs:
+      base_sha: ${{ steps.r.outputs.base_sha }}
+      new_sha:  ${{ steps.r.outputs.new_sha }}
+    steps:
+      - name: Resolve opentaint SHAs
+        id: r
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          base_sha=$(git ls-remote "https://github.com/${OPENTAINT_REPO}.git" "${{ inputs.base_ref }}" | awk '{print $1}' | head -n1)
+          new_sha=$(git  ls-remote "https://github.com/${OPENTAINT_REPO}.git" "${{ inputs.new_ref }}"  | awk '{print $1}' | head -n1)
+          # Fall back to input if ls-remote gives no output (e.g. input is already a full SHA).
+          base_sha=${base_sha:-${{ inputs.base_ref }}}
+          new_sha=${new_sha:-${{ inputs.new_ref }}}
+          echo "base_sha=$base_sha" >> "$GITHUB_OUTPUT"
+          echo "new_sha=$new_sha"   >> "$GITHUB_OUTPUT"
+          echo "Resolved base=$base_sha new=$new_sha"
+
+  probe-matrix:
+    needs: resolve
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.m.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PY_VERSION }}
+      - run: pip install pyyaml
+      - name: Build full matrix
+        id: m
+        run: |
+          matrix=$(python scripts/generate_matrix.py \
+            --repos projects/repos.yaml \
+            --base-sha "${{ needs.resolve.outputs.base_sha }}" \
+            --new-sha  "${{ needs.resolve.outputs.new_sha }}" \
+            --filter   "${{ inputs.projects_filter }}")
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+
+  probe:
+    needs: [resolve, probe-matrix]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix: ${{ fromJson(needs.probe-matrix.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PY_VERSION }}
+      - name: Compute cache key
+        id: k
+        run: |
+          key=$(python scripts/cache_key.py \
+            --analyzer-sha    "${{ matrix.analyzer_sha }}" \
+            --test-system-sha "${{ github.sha }}" \
+            --project-name    "${{ matrix.project }}" \
+            --project-head    "${{ matrix.head }}")
+          echo "key=$key" >> "$GITHUB_OUTPUT"
+      - name: Try cache restore
+        id: cache
+        uses: actions/cache/restore@v4
+        with:
+          path: results-bundle
+          key: ${{ steps.k.outputs.key }}
+      - name: Record probe outcome
+        run: |
+          mkdir -p probe-out
+          hit="${{ steps.cache.outputs.cache-hit }}"
+          [ -z "$hit" ] && hit=false
+          cat > "probe-out/${{ matrix.project }}__${{ matrix.ref_kind }}.json" <<EOF
+          {"project": "${{ matrix.project }}",
+           "ref_kind": "${{ matrix.ref_kind }}",
+           "analyzer_sha": "${{ matrix.analyzer_sha }}",
+           "hit": $hit}
+          EOF
+      - name: Upload probe outcome
+        uses: actions/upload-artifact@v4
+        with:
+          name: probe-${{ matrix.project }}-${{ matrix.ref_kind }}
+          path: probe-out/
+      - name: Upload cached result bundle (hits only)
+        if: steps.cache.outputs.cache-hit == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: result-${{ matrix.project }}-${{ matrix.ref_kind }}
+          path: results-bundle/
+
+  probe-collect:
+    needs: probe
+    runs-on: ubuntu-latest
+    outputs:
+      needs_base:  ${{ steps.agg.outputs.needs_base }}
+      needs_new:   ${{ steps.agg.outputs.needs_new }}
+      misses_json: ${{ steps.agg.outputs.misses_json }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: probe-*
+          path: probe-outputs
+          merge-multiple: true
+      - name: Aggregate probe outcomes
+        id: agg
+        run: |
+          python - <<'PY' > misses.json
+          import json, pathlib
+          misses = []
+          nb = nn = False
+          for p in sorted(pathlib.Path("probe-outputs").glob("*.json")):
+              e = json.loads(p.read_text())
+              if not e["hit"]:
+                  misses.append({"project": e["project"], "ref_kind": e["ref_kind"]})
+                  if e["ref_kind"] == "base": nb = True
+                  if e["ref_kind"] == "new":  nn = True
+          print(json.dumps({"misses": misses, "needs_base": nb, "needs_new": nn}))
+          PY
+          cat misses.json
+          nb=$(python -c "import json,sys;print(str(json.load(open('misses.json'))['needs_base']).lower())")
+          nn=$(python -c "import json,sys;print(str(json.load(open('misses.json'))['needs_new']).lower())")
+          echo "needs_base=$nb" >> "$GITHUB_OUTPUT"
+          echo "needs_new=$nn"  >> "$GITHUB_OUTPUT"
+          {
+            echo "misses_json<<EOF"
+            cat misses.json
+            echo EOF
+          } >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: probe-misses
+          path: misses.json
+
+  build:
+    needs: [resolve, probe-collect]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - ref_kind: base
+            sha: ${{ needs.resolve.outputs.base_sha }}
+            need: ${{ needs.probe-collect.outputs.needs_base }}
+          - ref_kind: new
+            sha: ${{ needs.resolve.outputs.new_sha }}
+            need: ${{ needs.probe-collect.outputs.needs_new }}
+    steps:
+      - name: Skip if no misses for this ref
+        if: matrix.need != 'true'
+        run: |
+          echo "No cache misses for ${{ matrix.ref_kind }} (${{ matrix.sha }}); skipping build."
+          exit 0
+      - uses: actions/checkout@v4
+        if: matrix.need == 'true'
+      - name: Checkout opentaint at ${{ matrix.sha }}
+        if: matrix.need == 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.OPENTAINT_REPO }}
+          ref: ${{ matrix.sha }}
+          path: opentaint
+      - name: Set up JDK
+        if: matrix.need == 'true'
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JDK_VERSION }}
+          distribution: temurin
+      - name: Set up Gradle
+        if: matrix.need == 'true'
+        uses: gradle/actions/setup-gradle@v4
+      - name: Set up Go
+        if: matrix.need == 'true'
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: opentaint/cli/go.sum
+      - name: Build
+        if: matrix.need == 'true'
+        run: bash scripts/build_opentaint.sh opentaint "${{ matrix.sha }}" build
+      - name: Upload build artifact
+        if: matrix.need == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ matrix.sha }}
+          path: build/
+
+  analyze-matrix:
+    needs: [resolve, probe-collect]
+    runs-on: ubuntu-latest
+    outputs:
+      matrix:    ${{ steps.m.outputs.matrix }}
+      has_cells: ${{ steps.m.outputs.has_cells }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PY_VERSION }}
+      - run: pip install pyyaml
+      - uses: actions/download-artifact@v4
+        with:
+          name: probe-misses
+          path: .
+      - name: Build misses-only matrix
+        id: m
+        run: |
+          matrix=$(python scripts/generate_matrix.py \
+            --repos projects/repos.yaml \
+            --base-sha "${{ needs.resolve.outputs.base_sha }}" \
+            --new-sha  "${{ needs.resolve.outputs.new_sha }}" \
+            --filter   "${{ inputs.projects_filter }}" \
+            --misses-only misses.json)
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+          has=$(python -c "import json;print('true' if json.loads('''$matrix''')['include'] else 'false')")
+          echo "has_cells=$has" >> "$GITHUB_OUTPUT"
+
+  analyze:
+    needs: [resolve, probe-collect, build, analyze-matrix]
+    if: needs.analyze-matrix.outputs.has_cells == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: ${{ fromJson(inputs.max_parallel) }}
+      matrix: ${{ fromJson(needs.analyze-matrix.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PY_VERSION }}
+      - run: pip install pyyaml
+      - name: Set up JDK (for project compile)
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ matrix.java_version }}
+          distribution: temurin
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: build-${{ matrix.analyzer_sha }}
+          path: build
+      - run: chmod +x build/opentaint
+      - name: Clone project
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ matrix.project }}
+          ref: ${{ matrix.head }}
+          path: project-root
+          fetch-depth: 1
+        continue-on-error: true
+      - name: Clone project (fallback via git)
+        if: hashFiles('project-root/**') == ''
+        run: |
+          git clone "${{ matrix.git }}" project-root
+          git -C project-root checkout "${{ matrix.head }}"
+      - name: Compute cache key
+        id: k
+        run: |
+          key=$(python scripts/cache_key.py \
+            --analyzer-sha    "${{ matrix.analyzer_sha }}" \
+            --test-system-sha "${{ github.sha }}" \
+            --project-name    "${{ matrix.project }}" \
+            --project-head    "${{ matrix.head }}")
+          echo "key=$key" >> "$GITHUB_OUTPUT"
+      - name: Run analysis
+        run: |
+          python scripts/run_analysis.py \
+            --build-dir   build \
+            --project-dir project-root \
+            --results-dir results-bundle \
+            --max-memory  "${{ matrix.max_memory }}" \
+            --timeout     1200
+      - name: Save to cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: results-bundle
+          key: ${{ steps.k.outputs.key }}
+      - name: Upload result bundle
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: result-${{ matrix.project }}-${{ matrix.ref_kind }}
+          path: results-bundle/
+
+  compare:
+    needs: [probe, analyze]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PY_VERSION }}
+      - run: pip install pyyaml
+      - name: Download all result bundles
+        uses: actions/download-artifact@v4
+        with:
+          pattern: result-*
+          path: bundles
+      - name: Run per-project comparison
+        id: c
+        run: |
+          set -u
+          mkdir -p diff
+          extra=""
+          if [ "${{ inputs.compare_locations }}" = "false" ]; then extra="$extra --no-compare-locations"; fi
+          if [ "${{ inputs.compare_columns }}"  = "true"  ]; then extra="$extra --compare-columns"; fi
+
+          # Find all distinct project names that have both bundles
+          shopt -s nullglob
+          projects=$(ls bundles/ | sed -E 's/^result-(.*)-(base|new)$/\1/' | sort -u)
+          for proj in $projects; do
+            b="bundles/result-${proj}-base"
+            n="bundles/result-${proj}-new"
+            [ -d "$b" ] && [ -d "$n" ] || { echo "skip $proj (missing side)"; continue; }
+            python scripts/compare_sarif.py project \
+              --project "$proj" --base-dir "$b" --new-dir "$n" \
+              --output "diff/${proj}.json" $extra
+          done
+      - name: Aggregate markdown report
+        id: agg
+        run: |
+          python scripts/compare_sarif.py aggregate \
+            --diff-dir diff --markdown-out report.md
+          cat report.md >> "$GITHUB_STEP_SUMMARY"
+        continue-on-error: true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: regression-diff
+          path: |
+            diff/
+            report.md
+      - name: Fail if any project's verdict is FAIL
+        run: |
+          python - <<'PY'
+          import json, pathlib, sys
+          fails = [p.stem for p in pathlib.Path("diff").glob("*.json")
+                   if json.loads(p.read_text())["verdict"] == "FAIL"]
+          if fails:
+              print("FAIL:", ", ".join(fails))
+              sys.exit(1)
+          print("All projects passed.")
+          PY

@@ -357,7 +357,6 @@ jobs:
           python scripts/compare_sarif.py aggregate \
             --diff-dir diff --markdown-out report.md
           cat report.md >> "$GITHUB_STEP_SUMMARY"
-        continue-on-error: true
       - uses: actions/upload-artifact@v4
         with:
           name: regression-diff

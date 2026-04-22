@@ -1,0 +1,117 @@
+repositories:
+  - name: seqra-java-spring-demo
+    git: https://github.com/seqra/seqra-java-spring-demo.git
+    head: 644cb1e6aa0152d193015456cf4de8a121750312
+    java-version: 21
+
+  - name: Stirling-PDF
+    git: https://github.com/Stirling-Tools/Stirling-PDF.git
+    head: d80e627899daf804f1390a0b75a1da3fd093aa84
+
+  - name: hertzbeat
+    git: https://github.com/apache/hertzbeat.git
+    head: 668106d445fe69e7128b2bb14f3e21c181bd8c55
+
+  - name: DWSurvey
+    git: https://github.com/wkeyuan/DWSurvey.git
+    head: 6a7b10e90f4e39c49b5afe4177ed23836953006b
+
+  - name: CordysCRM
+    git: https://github.com/1Panel-dev/CordysCRM.git
+    head: bb19880b457da3b59b771a42aa98812919bd99e3
+    java-version: 21
+
+  - name: jpress
+    git: https://github.com/JPressProjects/jpress.git
+    head: 9902ee392656f8c5939d48f9c1c2d809e25a4ea1
+
+  - name: MCMS
+    git: https://github.com/ming-soft/MCMS.git
+    head: d3d8b5257370dc15c0e0c2aea69754d46e051336
+
+  - name: openmrs-core
+    git: https://github.com/openmrs/openmrs-core.git
+    head: 494c57b334249fb4230d58986319deca21cb4151
+
+  - name: ruoyi-vue-pro
+    git: https://github.com/YunaiV/ruoyi-vue-pro.git
+    head: b29c5f0e40cfab289613992ddaddfb08d60a3e44
+
+  - name: vulnerable-spa
+    git: https://gitlab.com/alexander.kremlev/vulnerable-spa.git
+    head: 3cfc9e490bf75505b5ff29ad336f663c802a4f29
+
+  - name: spring-petclinic
+    git: https://github.com/spring-projects/spring-petclinic.git
+    head: 3e1ce239f4488f20abda24441388a515ea55a815
+
+  - name: tms
+    git: https://github.com/xiweicheng/tms.git
+    head: 9510b7cca4cd1f82114e5df0c13a491da4d8d818
+
+  - name: thingsboard
+    git: https://github.com/thingsboard/thingsboard.git
+    head: b31176433e8065ae4cb2a285bcd5e03fce9014f5
+    max-memory: 16G
+
+  - name: yudao-cloud
+    git: https://github.com/YunaiV/yudao-cloud.git
+    head: 99ffe0fd41c2b783ef83e6c8704e6e264603b484
+    max-memory: 16G
+
+  - name: halo
+    git: https://github.com/halo-dev/halo.git
+    head: 48e191daaa16953acc4db298b2aad8c485466ccd
+    java-version: 21
+
+  - name: kkFileView
+    git: https://github.com/kekingcn/kkFileView.git
+    head: 92ca92bee6d4682f2eb6f388174d39afd2263874
+
+  - name: apollo
+    git: https://github.com/apolloconfig/apollo.git
+    head: 9de9a1580f5eb3d9bfa7a2b95b95c693bf2032a4
+
+  - name: snowy
+    git: https://github.com/xiaonuobase/Snowy.git
+    head: 315e239c9db373a2de5f7298c9623f2ab5424d5c
+
+  - name: litemall
+    git: https://github.com/linlinjava/litemall.git
+    head: a1ef964a718b7277925b19ea26afe78ea3a1d325
+
+  - name: shopizer
+    git: https://github.com/shopizer-ecommerce/shopizer.git
+    head: 6a4a0a65a3408ee8f62597b51d1b3aac24b77dee
+
+  - name: maku-boot
+    git: https://github.com/makunet/maku-boot.git
+    head: f9dd43c8913d5acbb46d061e4a9fc47c42f3034f
+
+  - name: jeesite5
+    git: https://github.com/thinkgem/jeesite5.git
+    head: 7be0a1c5bd5349933e7e75c97e4f6bd1d529725e
+
+  - name: WebGoat
+    git: https://github.com/WebGoat/WebGoat.git
+    head: d4238ab406f27eea4aff8c86443cafbc220431c4
+
+  - name: joyagent-jdgenie
+    git: https://github.com/jd-opensource/joyagent-jdgenie.git
+    head: 7142f4156cb6237cfef0b44a3a99d66e43fa3a0f
+
+  - name: klaw
+    git: https://github.com/Aiven-Open/klaw.git
+    head: c4b1188d0e388c2459eecef1e3ac6ab0dce6e7e3
+
+  - name: spring-boot-seckill
+    git: https://github.com/halegreen/spring-boot-seckill.git
+    head: a0b979bbc533d9e2cae198f9e6f708b8c39861ea
+
+  - name: roncoo-education
+    git: https://github.com/roncoo/roncoo-education.git
+    head: 10e96084023a3488014e7e796cd3073edcd9ba1a
+
+  - name: continew-admin
+    git: https://github.com/continew-org/continew-admin.git
+    head: 9776dfbf311d652b30a4599ac7989c35b29da372

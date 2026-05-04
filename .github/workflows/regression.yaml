@@ -295,15 +295,24 @@ jobs:
             --project-head    "${{ matrix.head }}")
           echo "key=$key" >> "$GITHUB_OUTPUT"
       - name: Run analysis
+        id: ra
         run: |
+          set +e
           python scripts/run_analysis.py \
             --build-dir   build \
             --project-dir project-root \
             --results-dir results-bundle \
             --max-memory  "${{ matrix.max_memory }}" \
             --timeout     1200
+          rc=$?
+          echo "rc=$rc" >> "$GITHUB_OUTPUT"
+          # Exit 0 so cache/upload steps still run; we fail the job at the end
+          # if rc==3 (autobuilder failure) to enable GitHub "rerun failed jobs".
+          exit 0
       - name: Save to cache
-        if: always()
+        # Skip caching when the autobuilder failed (rc=3) so a rerun gets a
+        # fresh attempt instead of replaying the failure from cache.
+        if: always() && steps.ra.outputs.rc != '3'
         uses: actions/cache/save@v4
         with:
           path: results-bundle
@@ -315,6 +324,11 @@ jobs:
           name: result-${{ matrix.project }}-${{ matrix.ref_kind }}
           path: results-bundle/
           retention-days: 1
+      - name: Fail job if autobuilder failed
+        if: steps.ra.outputs.rc == '3'
+        run: |
+          echo "::error::Autobuilder failed for ${{ matrix.project }} (${{ matrix.ref_kind }}); failing job to allow rerun"
+          exit 1
 
   compare:
     needs: [probe, analyze]

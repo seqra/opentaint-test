@@ -15,8 +15,11 @@ Usage:
         --max-memory 8G \
         [--timeout 1200]
 
-Exit code is 0 if status.json was written (even on analyzer error); non-zero
-only on wrapper-level problems (missing build, bad arguments).
+Exit codes:
+    0  status.json was written, autobuilder (compile step) succeeded.
+    2  wrapper-level problem (missing build, bad arguments).
+    3  status.json was written, but the autobuilder failed. Distinct so the
+       workflow can skip caching and fail the job for an easy GitHub rerun.
 """
 
 from __future__ import annotations
@@ -131,12 +134,14 @@ def run_pipeline(build_dir: Path, project_dir: Path, results_dir: Path,
 
     # Do NOT pre-create model_dir: `opentaint compile --output` may refuse to
     # write into an already-existing directory (or produce inconsistent state).
-    status: dict = {"status": "ok", "analyzer_status": None, "reason": None}
+    status: dict = {"status": "ok", "analyzer_status": None, "reason": None,
+                    "autobuilder_failed": False}
     try:
         with run_log.open("w") as log_fp:
             rc, out, err = _run(compile_cmd, timeout, log_fp)
             if rc != 0:
                 status["status"] = "error"
+                status["autobuilder_failed"] = True
                 msg = (err or out or "").strip()[:400] or "(no output)"
                 status["reason"] = f"compile failed rc={rc}: {msg}"
                 return status
@@ -180,7 +185,7 @@ def main() -> int:
 
     (args.results_dir / "status.json").write_text(json.dumps(status, indent=2))
     print(json.dumps(status))
-    return 0
+    return 3 if status.get("autobuilder_failed") else 0
 
 
 if __name__ == "__main__":

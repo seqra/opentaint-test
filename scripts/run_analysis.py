@@ -3,7 +3,8 @@
 
 Writes:
     <results-dir>/results.sarif     — SARIF output (may be partial on error)
-    <results-dir>/status.json       — {"status": "ok"|"error", "analyzer_status": [...], "reason": "..."}
+    <results-dir>/status.json       — {"status": "ok"|"error", "analyzer_status": [...], "reason": "...",
+                                        "scan_seconds": float|null, "peak_memory_bytes": int|null}
     <results-dir>/analyzer.log      — analyzer log copied from opentaint, if found
     <results-dir>/run.log           — our own compile+scan stdout/stderr
 
@@ -36,6 +37,11 @@ from pathlib import Path
 
 
 _LOG_FILE_RE = re.compile(r"Log file:\s*(.+\.log)")
+# Analyzer prints a periodic sample like:
+#   ... Memory usage: 21792087928/30064771072 (72,48%)
+# We take the max of the "used" figure as the run's peak. Absent on runs that
+# finish (or fail) before the first sample is logged.
+_MEM_USAGE_RE = re.compile(r"Memory usage:\s*(\d+)/\d+")
 _COMPLETION_MARKER = "All runners are empty"
 _STATUS_MARKERS = [
     ("high_memory", "Detected high memory usage"),
@@ -62,6 +68,22 @@ def extract_analyzer_status(analyzer_log: Path | None) -> list[str] | None:
     return sorted(tags)
 
 
+def extract_peak_memory(analyzer_log: Path | None) -> int | None:
+    """Return peak resident bytes from the analyzer log, or None.
+
+    None means the log is missing or never logged a memory sample (e.g. the
+    run terminated before the first periodic reading).
+    """
+    if analyzer_log is None or not analyzer_log.is_file():
+        return None
+    try:
+        content = analyzer_log.read_text(errors="replace")
+    except OSError:
+        return None
+    used = [int(m.group(1)) for m in _MEM_USAGE_RE.finditer(content)]
+    return max(used) if used else None
+
+
 def _copy_analyzer_log(stdout: str, dest: Path) -> Path | None:
     m = _LOG_FILE_RE.search(stdout or "")
     if not m:
@@ -76,7 +98,7 @@ def _copy_analyzer_log(stdout: str, dest: Path) -> Path | None:
         return None
 
 
-def _run(cmd: list[str], timeout: int, log_fp) -> tuple[int, str, str]:
+def _run(cmd: list[str], timeout: int, log_fp) -> tuple[int, str, str, float]:
     log_fp.write(f"\n=== CMD === {' '.join(cmd)}\n")
     log_fp.flush()
     start = time.time()
@@ -91,7 +113,7 @@ def _run(cmd: list[str], timeout: int, log_fp) -> tuple[int, str, str]:
     log_fp.write(f"=== RC === {rc}  === DURATION === {dur:.1f}s\n")
     log_fp.write(f"=== STDOUT ===\n{out}\n=== STDERR ===\n{err}\n")
     log_fp.flush()
-    return rc, out, err
+    return rc, out, err, dur
 
 
 def run_pipeline(build_dir: Path, project_dir: Path, results_dir: Path,
@@ -135,10 +157,11 @@ def run_pipeline(build_dir: Path, project_dir: Path, results_dir: Path,
     # Do NOT pre-create model_dir: `opentaint compile --output` may refuse to
     # write into an already-existing directory (or produce inconsistent state).
     status: dict = {"status": "ok", "analyzer_status": None, "reason": None,
-                    "autobuilder_failed": False}
+                    "autobuilder_failed": False, "scan_seconds": None,
+                    "peak_memory_bytes": None}
     try:
         with run_log.open("w") as log_fp:
-            rc, out, err = _run(compile_cmd, timeout, log_fp)
+            rc, out, err, _ = _run(compile_cmd, timeout, log_fp)
             if rc != 0:
                 status["status"] = "error"
                 status["autobuilder_failed"] = True
@@ -146,9 +169,11 @@ def run_pipeline(build_dir: Path, project_dir: Path, results_dir: Path,
                 status["reason"] = f"compile failed rc={rc}: {msg}"
                 return status
 
-            rc, out, err = _run(scan_cmd, timeout, log_fp)
+            rc, out, err, scan_dur = _run(scan_cmd, timeout, log_fp)
+            status["scan_seconds"] = round(scan_dur, 1)
             analyzer_log = _copy_analyzer_log(out, analyzer_log_dst)
             status["analyzer_status"] = extract_analyzer_status(analyzer_log)
+            status["peak_memory_bytes"] = extract_peak_memory(analyzer_log)
 
             sarif_written = sarif.exists() and sarif.stat().st_size > 0
             if rc == 0 or sarif_written:

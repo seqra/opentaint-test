@@ -12,6 +12,8 @@ Output (written to --output <file.json>):
       "project": "<name>",
       "base_status": [...], "new_status": [...],
       "status_regression": true/false,
+      "time":   {"base": s|null, "new": s|null, "delta": s|null},
+      "memory": {"base": bytes|null, "new": bytes|null, "delta": bytes|null},
       "base_error": "..." | null, "new_error": "..." | null,
       "added":   [ {ruleId, path, startLine, ...}, ... ],
       "removed": [ ... ],
@@ -92,6 +94,12 @@ def diff_findings(base: list[dict], new: list[dict],
     return added, removed, unchanged
 
 
+def _metric_delta(base, new) -> dict:
+    """Build a {base, new, delta} record. delta is None unless both sides exist."""
+    delta = (new - base) if (base is not None and new is not None) else None
+    return {"base": base, "new": new, "delta": delta}
+
+
 def _load(p: Path) -> dict:
     if not p.is_file():
         return {}
@@ -121,6 +129,11 @@ def compare_bundle(project: str, base_dir: Path, new_dir: Path,
     base_error = base_status.get("reason") if base_status.get("status") == "error" else None
     new_error = new_status.get("reason") if new_status.get("status") == "error" else None
 
+    time_delta = _metric_delta(base_status.get("scan_seconds"),
+                               new_status.get("scan_seconds"))
+    memory_delta = _metric_delta(base_status.get("peak_memory_bytes"),
+                                 new_status.get("peak_memory_bytes"))
+
     status_regression = ("complete" in base_tags) and ("complete" not in new_tags) and bool(base_tags)
 
     base_findings = _extract_findings(base_sarif) if base_sarif else []
@@ -145,6 +158,8 @@ def compare_bundle(project: str, base_dir: Path, new_dir: Path,
         "base_no_result": base_no_result,
         "new_no_result": new_no_result,
         "status_regression": status_regression,
+        "time": time_delta,
+        "memory": memory_delta,
         "added": added,
         "removed": removed,
         "counts": {
@@ -159,6 +174,25 @@ def compare_bundle(project: str, base_dir: Path, new_dir: Path,
         "verdict": "FAIL" if fail_reasons else "PASS",
         "fail_reasons": fail_reasons,
     }
+
+
+def _fmt_no_data(base, new) -> str | None:
+    """If either side is missing, return a '<no data: ...>' string, else None."""
+    missing = [side for side, v in (("base", base), ("new", new)) if v is None]
+    if not missing:
+        return None
+    return f"<no data: {'both' if len(missing) == 2 else missing[0]}>"
+
+
+def _fmt_metric(metric: dict, unit: str, scale=1.0, decimals=0) -> str:
+    """Render '<new><unit> (<+delta><unit>)' or a '<no data: ...>' marker."""
+    base, new, delta = metric.get("base"), metric.get("new"), metric.get("delta")
+    no_data = _fmt_no_data(base, new)
+    if no_data is not None:
+        return no_data
+    new_s = f"{new / scale:.{decimals}f}{unit}"
+    delta_s = f"{delta / scale:+.{decimals}f}{unit}"
+    return f"{new_s} ({delta_s})"
 
 
 def render_markdown(diffs: list[dict]) -> str:
@@ -182,8 +216,8 @@ def render_markdown(diffs: list[dict]) -> str:
         f"**{status_deg_n} with analyzer-status regression**, "
         f"**{no_result_n} with no analysis result on at least one side**",
         "",
-        "| project | base status | new status | =findings | +findings | −findings | verdict | notes |",
-        "|---|---|---|---:|---:|---:|---|---|",
+        "| project | base status | new status | =findings | +findings | −findings | scan time | peak mem | verdict | notes |",
+        "|---|---|---|---:|---:|---:|---:|---:|---|---|",
     ]
     for d in sorted(diffs, key=lambda x: (x["verdict"] != "FAIL", x["project"])):
         flag = "❌ " if d["verdict"] == "FAIL" else ""
@@ -203,10 +237,13 @@ def render_markdown(diffs: list[dict]) -> str:
         if d.get("new_no_result"):  notes.append("**no new result**")
         if d.get("base_error"):     notes.append(f"base error: {_clean(d['base_error'])}")
         if d.get("new_error"):      notes.append(f"new error: {_clean(d['new_error'])}")
+        scan_time = _fmt_metric(d.get("time") or {}, "s")
+        peak_mem = _fmt_metric(d.get("memory") or {}, "G", scale=1024**3, decimals=1)
         lines.append(
             f"| {flag}{d['project']} | {fmt_status(d['base_status'])} "
             f"| {fmt_status(d['new_status'])} "
             f"| {unchanged} | {added} | {removed} "
+            f"| {scan_time} | {peak_mem} "
             f"| {d['verdict']} | {'; '.join(notes)} |"
         )
     return "\n".join(lines) + "\n"

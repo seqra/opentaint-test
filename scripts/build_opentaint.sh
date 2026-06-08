@@ -25,12 +25,16 @@ echo "==> Building analyzer JAR"
 echo "==> Building autobuilder JAR"
 ( cd "$OPENTAINT_DIR/core" && ./gradlew --no-daemon opentaint-jvm-autobuilder:projectAutoBuilderJar )
 
+echo "==> Building Go IR server"
+( cd "$OPENTAINT_DIR/core" && ./gradlew --no-daemon :opentaint-ir:go:buildGoServer )
+
 echo "==> Building Go CLI"
 ( cd "$OPENTAINT_DIR/cli" && go build -o opentaint . )
 
 echo "==> Staging build/"
 cp "$OPENTAINT_DIR/core/build/libs/opentaint-project-analyzer.jar"                 "$OUT_DIR/"
 cp "$OPENTAINT_DIR/core/opentaint-jvm-autobuilder/build/libs/opentaint-project-auto-builder.jar" "$OUT_DIR/"
+cp "$OPENTAINT_DIR/core/opentaint-ir/go/go-ssa-server/go-ssa-server" "$OUT_DIR/"
 cp "$OPENTAINT_DIR/cli/opentaint"                                                   "$OUT_DIR/"
 rm -rf "$OUT_DIR/rules"
 cp -R "$OPENTAINT_DIR/rules/ruleset"                                                "$OUT_DIR/rules"

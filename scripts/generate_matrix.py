@@ -9,7 +9,7 @@ Output JSON shape (printed to stdout):
 
     {"include": [
         {"project": "spring-petclinic", "git": "...", "head": "...",
-         "java_version": "17", "max_memory": "8G",
+         "java_version": "17", "go_version": "1.25.x", "max_memory": "8G",
          "ref_kind": "base", "analyzer_sha": "<sha>"},
         ...
     ]}
@@ -25,6 +25,7 @@ from pathlib import Path
 import yaml
 
 DEFAULT_JAVA = "17"
+DEFAULT_GO = "1.25.x"
 DEFAULT_MEMORY = "8G"
 
 
@@ -63,6 +64,7 @@ def build_matrix(repos_path: Path, base_sha: str, new_sha: str,
                 "git": repo["git"],
                 "head": repo["head"],
                 "java_version": str(repo.get("java-version", DEFAULT_JAVA)),
+                "go_version": str(repo.get("go-version", DEFAULT_GO)),
                 "max_memory": str(repo.get("max-memory", DEFAULT_MEMORY)),
                 "ref_kind": ref_kind,
                 "analyzer_sha": sha,

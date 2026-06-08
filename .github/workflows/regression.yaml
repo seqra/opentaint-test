@@ -210,6 +210,12 @@ jobs:
       - name: Set up Gradle
         if: matrix.need == 'true'
         uses: gradle/actions/setup-gradle@v4
+      - name: Install Go-ir dependencies
+        if: matrix.need == 'true'
+        run: |
+          apt-get update
+          apt-get install -y ca-certificates protobuf-compiler
+          update-ca-certificates
       - name: Set up Go
         if: matrix.need == 'true'
         uses: actions/setup-go@v5
@@ -275,6 +281,10 @@ jobs:
         with:
           java-version: ${{ matrix.java_version }}
           distribution: temurin
+      - name: Set up Go (for project compile)
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go_version }}
       - name: Download build artifact
         uses: actions/download-artifact@v4
         with:

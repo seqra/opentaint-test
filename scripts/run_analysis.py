@@ -121,10 +121,11 @@ def run_pipeline(build_dir: Path, project_dir: Path, results_dir: Path,
     results_dir.mkdir(parents=True, exist_ok=True)
     opentaint = build_dir / "opentaint"
     analyzer_jar = build_dir / "opentaint-project-analyzer.jar"
+    go_ir_server = build_dir / "go-ssa-server"
     autobuilder_jar = build_dir / "opentaint-project-auto-builder.jar"
     rules_dir = build_dir / "rules"
 
-    for p in (opentaint, analyzer_jar, autobuilder_jar, rules_dir):
+    for p in (opentaint, analyzer_jar, go_ir_server, autobuilder_jar, rules_dir):
         if not p.exists():
             raise FileNotFoundError(f"missing build artifact: {p}")
 
@@ -147,6 +148,7 @@ def run_pipeline(build_dir: Path, project_dir: Path, results_dir: Path,
         str(opentaint), "scan", "--debug",
         "--experimental",
         "--analyzer-jar", str(analyzer_jar),
+        "--go-server-binary", str(go_ir_server),
         "--ruleset", str(rules_dir),
         "--project-model", str(model_dir),
         "--output", str(sarif),

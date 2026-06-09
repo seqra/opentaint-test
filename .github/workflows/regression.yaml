@@ -202,6 +202,12 @@ jobs:
           repository: ${{ env.OPENTAINT_REPO }}
           ref: ${{ matrix.sha }}
           path: opentaint
+      - name: Install Go-ir dependencies
+        if: matrix.need == 'true'
+        run: |
+          apt-get update
+          apt-get install -y ca-certificates protobuf-compiler
+          update-ca-certificates
       - name: Set up JDK
         if: matrix.need == 'true'
         uses: actions/setup-java@v4
@@ -211,12 +217,6 @@ jobs:
       - name: Set up Gradle
         if: matrix.need == 'true'
         uses: gradle/actions/setup-gradle@v4
-      - name: Install Go-ir dependencies
-        if: matrix.need == 'true'
-        run: |
-          apt-get update
-          apt-get install -y ca-certificates protobuf-compiler
-          update-ca-certificates
       - name: Set up Go
         if: matrix.need == 'true'
         uses: actions/setup-go@v5

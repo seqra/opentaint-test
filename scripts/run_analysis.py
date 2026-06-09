@@ -28,6 +28,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import stat
 import re
 import shutil
 import subprocess
@@ -144,6 +145,10 @@ def run_pipeline(build_dir: Path, project_dir: Path, results_dir: Path,
         "--output", str(model_dir),
         str(project_dir),
     ]
+
+    current_permissions = os.stat(go_ir_server).st_mode
+    os.chmod(go_ir_server, current_permissions | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+
     scan_cmd = [
         str(opentaint), "scan", "--debug",
         "--experimental",

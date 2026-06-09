@@ -116,3 +116,135 @@ repositories:
   - name: continew-admin
     git: https://github.com/continew-org/continew-admin.git
     head: 9776dfbf311d652b30a4599ac7989c35b29da372
+
+  - name: go-sec-code-mutated
+    git: https://github.com/flawgarden/go-sec-code-mutated.git
+    head: 45fa4739a8a7d58af835e827b4eb2574a728544b
+
+  - name: go-owasp-converted
+    git: https://github.com/flawgarden/go-owasp-converted-mutated.git
+    head: 985fb705e36ea97f2d7bd37ebd31d44b251a7584
+
+  - name: go-owasp-converted-mutated
+    git: https://github.com/flawgarden/go-owasp-converted-mutated.git
+    head: 57df70caba17d5e867b51cd0df17fd486b23990e
+
+  - name: todo-app
+    git: https://github.com/zhashkevych/todo-app.git
+    head: 1789ed69bd5f449bd605e23a92a1e87a83cb9fda
+
+  - name: sonic
+    git: https://github.com/go-sonic/sonic.git
+    head: 53db5562b4fb8da9b7a7be694233ff7bcff0b35b
+
+  - name: shadify
+    git: https://github.com/cheatsnake/shadify.git
+    head: a2ff8f46ac748c9fcfc43ad5661c8c56e4920a8e
+
+  - name: journalist
+    git: https://github.com/mrusme/journalist.git
+    head: 9b62d2b277a57e8088a6971b6c1565370b284428
+
+  - name: gocommerce
+    git: https://github.com/netlify/gocommerce.git
+    head: fc6215a8af06b407e94e2f6680f6c2b5a82a4278
+
+  - name: go-pos
+    git: https://github.com/bagashiz/go-pos.git
+    head: 30833c4511e18ad9f02210e24f2a3b08dc84518e
+
+  - name: microservices-go
+    git: https://github.com/gbrayhan/microservices-go.git
+    head: b63ba3de1132c6461359ac70ebbbec64e99bf128
+
+  - name: MyUrls
+    git: https://github.com/CareyWang/MyUrls.git
+    head: f56a92f944559d6ec6dff35a047294fe68379d98
+
+  - name: ohUrlShortener
+    git: https://github.com/barats/ohUrlShortener.git
+    head: a738952f0a949fdfd3590c74257bcd313124dd8d
+
+  - name: tutorial-go-fiber-rest-api
+    git: https://github.com/koddr/tutorial-go-fiber-rest-api.git
+    head: 205901ed3f955c7c5cfea9e2cc0021f50baf408f
+
+  - name: golang-fiber-jwt
+    git: https://github.com/wpcodevo/golang-fiber-jwt.git
+    head: 6737e11749bbd01c6122078c77696e49fbeca540
+
+  - name: go-rest-boilerplate
+    git: https://github.com/snykk/go-rest-boilerplate.git
+    head: ef4bb28f8d9150681b84119b3bac5e1a97878b00
+
+  - name: nitr
+    git: https://github.com/bitcav/nitr.git
+    head: fa3b1708352940a8af3cb7293cd915f5def4bbad
+
+  - name: jump-jump
+    git: https://github.com/jwma/jump-jump.git
+    head: 96e8c35f823a0fb607f5b6ae707afee0c8b34bd0
+
+  - name: go-rest-api
+    git: https://github.com/restuwahyu13/go-rest-api.git
+    head: 0a0452090edca33eb2637ced0937e7c20565b4a4
+
+  - name: url-shortener
+    git: https://github.com/GolangLessons/url-shortener.git
+    head: c3987f66469a8d0769add18521adb9023520be95
+
+  - name: Parham-Food-BackEnd
+    git: https://github.com/Mamin78/Parham-Food-BackEnd.git
+    head: c703033d634c4d7d3136b9ffb47a1eed0424069b
+
+  - name: goapi
+    git: https://github.com/sirini/goapi.git
+    head: c3dd8b220607b66e73973010aa1ccae26c1471b8
+
+  - name: EcommerceAPI
+    git: https://github.com/rasadov/EcommerceAPI.git
+    head: ddc95abe518b77304b2cacdaf973c862e1285be3
+
+  - name: wblog
+    git: https://github.com/wa8n/wblog.git
+    head: d96c11c1471f409520a989a99d22affc84a65c1a
+
+  - name: gin-rest-api-example
+    git: https://github.com/zacscoding/gin-rest-api-example.git
+    head: 4d1c00da6ae1c77187dbb749f753307cdf784848
+
+  - name: goshop
+    git: https://github.com/quangdangfit/goshop.git
+    head: 75ded3a930b5d634ea81175393e2d337a28740fe
+
+  - name: wtf
+    git: https://github.com/benbjohnson/wtf.git
+    head: 05bc90c940d5f9e2490fc93cf467d9e8aa48ad63
+
+  - name: server
+    git: https://github.com/gotify/server.git
+    head: 061053711ffae46b1cbd7c26037efec0a0c6487d
+
+  - name: Artalk
+    git: https://github.com/ArtalkJS/Artalk.git
+    head: 71a651153bc68267a8b86c4ee88c597bd4097071
+
+  - name: litecart
+    git: https://github.com/shurco/litecart.git
+    head: c22424b62ff9426c79befa8eb94839b8e1ee3488
+
+  - name: kratos
+    git: https://github.com/go-kratos/kratos.git
+    head: 1393e857d98dc346bffa449d8ca1e96c0b1f355c
+
+  - name: v2
+    git: https://github.com/miniflux/v2.git
+    head: f5bfd5a70c0fa518ab1acad5c4d2c30072138bfe
+
+  - name: woodpecker
+    git: https://github.com/woodpecker-ci/woodpecker.git
+    head: b9ba31ebe863f6aff1f046c91ac20688b8c94778
+
+  - name: casdoor
+    git: https://github.com/casdoor/casdoor.git
+    head: 6f18f671382b598cd5282954137c2b9d7e6d595a

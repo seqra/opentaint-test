@@ -176,6 +176,7 @@ jobs:
   build:
     needs: [resolve, probe-collect]
     runs-on: ubuntu-latest
+    container: ubuntu:latest
     strategy:
       fail-fast: false
       matrix:

@@ -206,7 +206,7 @@ jobs:
         if: matrix.need == 'true'
         run: |
           apt-get update
-          apt-get install -y ca-certificates protobuf-compiler
+          apt-get install -y ca-certificates patch protobuf-compiler
           update-ca-certificates
       - name: Set up JDK
         if: matrix.need == 'true'

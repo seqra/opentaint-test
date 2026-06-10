@@ -26,7 +26,7 @@ Inputs:
 
 ## Report
 
-The workflow summary (`$GITHUB_STEP_SUMMARY`) shows, per project: analyzer status for base and new (`complete` / `incomplete` / `oom` / `analysis_timeout` / `high_memory`), added and removed finding counts, and a per-project verdict. A project fails when:
+The workflow summary (`$GITHUB_STEP_SUMMARY`) shows, per project: analyzer status for base and new (`complete` / `incomplete` / `oom` / `analysis_timeout` / `high_memory`), added and removed finding counts, scan time and peak memory for the new run (each with its delta against base, e.g. `412s (+282s)` / `27.6G (+15.7G)`), and a per-project verdict. Scan time is the wall-clock of the scan phase; peak memory is the highest resident usage the analyzer logged — rendered as `<no data: base|new|both>` when a run finished or failed before logging a memory sample. A project fails when:
 
 - the analyzer regressed from `complete` on base to `incomplete` on new, **or**
 - added/removed finding counts are non-zero, **or**

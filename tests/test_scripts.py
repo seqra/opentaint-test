@@ -91,11 +91,13 @@ def test_diff_multiset_counts():
 
 # ── compare_sarif: bundle-level verdict and status regression ────────────────
 
-def _write_bundle(tmp: Path, sarif_findings, status_tags=None, status="ok", reason=None):
+def _write_bundle(tmp: Path, sarif_findings, status_tags=None, status="ok", reason=None,
+                  scan_seconds=None, peak_memory_bytes=None):
     tmp.mkdir(parents=True, exist_ok=True)
     (tmp / "results.sarif").write_text(json.dumps(_sarif(sarif_findings)))
     (tmp / "status.json").write_text(json.dumps({
         "status": status, "analyzer_status": status_tags, "reason": reason,
+        "scan_seconds": scan_seconds, "peak_memory_bytes": peak_memory_bytes,
     }))
 
 
@@ -136,6 +138,34 @@ def test_scan_error_triggers_fail(tmp_path):
     assert r["new_error"] == "boom"
 
 
+# ── compare_sarif: time / memory deltas ──────────────────────────────────────
+
+def test_time_memory_deltas_computed(tmp_path):
+    base = tmp_path / "base"; new = tmp_path / "new"
+    _write_bundle(base, [], status_tags=["complete"],
+                  scan_seconds=130.0, peak_memory_bytes=5 * 1024**3)
+    _write_bundle(new,  [], status_tags=["complete"],
+                  scan_seconds=142.0, peak_memory_bytes=6 * 1024**3)
+    r = compare_sarif.compare_bundle("proj", base, new, True, False)
+    assert r["time"] == {"base": 130.0, "new": 142.0, "delta": 12.0}
+    assert r["memory"] == {"base": 5 * 1024**3, "new": 6 * 1024**3,
+                           "delta": 1 * 1024**3}
+
+
+def test_time_memory_deltas_missing_side(tmp_path):
+    base = tmp_path / "base"; new = tmp_path / "new"
+    _write_bundle(base, [], status_tags=["complete"],
+                  scan_seconds=130.0, peak_memory_bytes=None)
+    _write_bundle(new,  [], status_tags=["complete"],
+                  scan_seconds=142.0, peak_memory_bytes=6 * 1024**3)
+    r = compare_sarif.compare_bundle("proj", base, new, True, False)
+    assert r["time"]["delta"] == 12.0
+    # Memory missing on base → no delta, base recorded as None.
+    assert r["memory"]["base"] is None
+    assert r["memory"]["new"] == 6 * 1024**3
+    assert r["memory"]["delta"] is None
+
+
 # ── run_analysis: status extraction ──────────────────────────────────────────
 
 def test_extract_status_complete(tmp_path):
@@ -167,6 +197,35 @@ def test_extract_status_missing_file(tmp_path):
     assert run_analysis.extract_analyzer_status(None) is None
 
 
+# ── run_analysis: peak memory extraction ─────────────────────────────────────
+
+_MEM_LINE = ("2026-05-18 15:21:43 |D| 15:21:43.171 |I| "
+             "TaintAnalysisUnitRunnerManager - Memory usage: {used}/30064771072 ({pct})\n")
+
+
+def test_extract_peak_memory_takes_max(tmp_path):
+    log = tmp_path / "a.log"
+    log.write_text(
+        _MEM_LINE.format(used=21792087928, pct="72,48%")
+        + "some unrelated line\n"
+        + _MEM_LINE.format(used=29650737400, pct="98,62%")
+        + _MEM_LINE.format(used=13708648632, pct="45,60%")
+    )
+    assert run_analysis.extract_peak_memory(log) == 29650737400
+
+
+def test_extract_peak_memory_no_lines(tmp_path):
+    # Fast / early-terminated run: analyzer never logged a memory sample.
+    log = tmp_path / "a.log"
+    log.write_text("All runners are empty\n")
+    assert run_analysis.extract_peak_memory(log) is None
+
+
+def test_extract_peak_memory_missing_file(tmp_path):
+    assert run_analysis.extract_peak_memory(tmp_path / "nope.log") is None
+    assert run_analysis.extract_peak_memory(None) is None
+
+
 # ── compare_sarif: markdown rendering smoke test ────────────────────────────
 
 def test_render_markdown_smoke():
@@ -174,14 +233,38 @@ def test_render_markdown_smoke():
         {"project": "p1", "verdict": "PASS",
          "base_status": ["complete"], "new_status": ["complete"],
          "status_regression": False,
-         "counts": {"added": 0, "removed": 0, "unchanged": 42}},
+         "counts": {"added": 0, "removed": 0, "unchanged": 42},
+         "time": {"base": 130.0, "new": 142.0, "delta": 12.0},
+         "memory": {"base": 5 * 1024**3, "new": 6 * 1024**3, "delta": 1 * 1024**3}},
         {"project": "p2", "verdict": "FAIL",
          "base_status": ["complete"], "new_status": ["incomplete"],
          "status_regression": True,
-         "counts": {"added": 0, "removed": 0, "unchanged": 3}},
+         "counts": {"added": 0, "removed": 0, "unchanged": 3},
+         "time": {"base": None, "new": None, "delta": None},
+         "memory": {"base": None, "new": None, "delta": None}},
     ])
     assert "1 passed" in md and "1 failed" in md
     assert "❌ p2" in md
     assert "**incomplete**" in md
     assert "=findings" in md
     assert "| 42 |" in md
+    # New columns present in header.
+    assert "scan time" in md and "peak mem" in md
+    # Absolute + signed delta for p1.
+    assert "142s (+12s)" in md
+    assert "6.0G (+1.0G)" in md
+    # No-data rendering for p2 (both sides missing).
+    assert "<no data: both>" in md
+
+
+def test_render_markdown_no_data_one_side():
+    md = compare_sarif.render_markdown([
+        {"project": "p1", "verdict": "PASS",
+         "base_status": ["complete"], "new_status": ["complete"],
+         "status_regression": False,
+         "counts": {"added": 0, "removed": 0, "unchanged": 1},
+         "time": {"base": 100.0, "new": 110.0, "delta": 10.0},
+         "memory": {"base": None, "new": 6 * 1024**3, "delta": None}},
+    ])
+    assert "110s (+10s)" in md
+    assert "<no data: base>" in md

@@ -28,12 +28,20 @@ every token before invoking opentaint:
   staged at ``<build-dir>/rules``  (use this only when you want those
   YAMLs layered on top of, or instead of, the analyzer's ``builtin`` pack).
 
-Ruleset handling: the runner does **not** force any ``--ruleset`` flag. If
-the project's ``scan-flags`` contains no ``--ruleset``, the runner inserts
-the analyzer's documented default ``--ruleset builtin`` so the JAR-baked
-rule pack is loaded. If the project supplies one or more ``--ruleset``
-tokens (including the literal ``builtin``), they are passed verbatim and
-the runner adds nothing of its own.
+Ruleset handling. In the test bench ``builtin`` is treated as an alias for
+the rule pack staged at ``<build-dir>/rules`` (a copy of
+``opentaint/rules/ruleset`` made by ``build_opentaint.sh``). The CLI's
+native ``--ruleset builtin`` sentinel downloads the pack from a GitHub
+release tagged ``rules/<version>`` — unavailable for in-development
+opentaint SHAs (and 404s anyway due to a CLI URL bug). The staged copy IS
+the built-in pack for the revision under test, so we silently rewrite the
+sentinel to its absolute path. Two rules result:
+
+* If ``scan-flags`` contains no ``--ruleset``, the runner inserts
+  ``--ruleset <build-dir>/rules`` as the default.
+* Each ``--ruleset builtin`` pair in ``scan-flags`` is rewritten to
+  ``--ruleset <build-dir>/rules`` before invoking opentaint. All other
+  ``--ruleset`` values are passed through verbatim.
 
 Exit codes:
     0  status.json was written, autobuilder (compile step) succeeded.
@@ -61,8 +69,12 @@ from pathlib import Path
 EXT_PLACEHOLDER = "{ext}"
 RULES_PLACEHOLDER = "{rules}"
 
-# Sentinel value accepted by `opentaint scan --ruleset`. Tells the analyzer
-# to use the rule pack baked into its JAR rather than a file/directory path.
+# Sentinel value accepted by `opentaint scan --ruleset`. The CLI resolves it
+# by downloading a GitHub release tagged `rules/<version>` — not viable for
+# in-development SHAs analysed by this bench (and 404s due to a CLI URL
+# bug). The runner intercepts the sentinel and points the analyzer at the
+# staged source-tree pack at `<build-dir>/rules` instead. See
+# `_resolve_builtin_ruleset`.
 BUILTIN_RULESET = "builtin"
 
 # Token (as it appears in argv) that introduces a ruleset value. Used to
@@ -183,28 +195,69 @@ def _expand_scan_flags(flags: list[str],
     ]
 
 
-def _build_scan_cmd(opentaint: Path, analyzer_jar: Path,
+def _resolve_builtin_ruleset(flags: list[str], rules_dir: Path) -> list[str]:
+    """Rewrite every ``--ruleset builtin`` pair to ``--ruleset <rules_dir>``.
+
+    The opentaint CLI resolves the ``builtin`` sentinel by fetching the rule
+    pack from a GitHub release tagged ``rules/<version>``. That download is
+    unusable in this bench because:
+
+    * we test in-development opentaint SHAs whose rule packs are not (yet)
+      published as releases;
+    * the CLI's URL template double-includes the org, producing a 404
+      (``api.github.com/repos/seqra/seqra/opentaint/…``).
+
+    The staged ``<rules_dir>`` directory is the same source-tree pack that
+    would have been packaged into the release, copied at build time by
+    ``build_opentaint.sh``. From the analyzer's perspective the rules are
+    identical; only the CLI's coverage report labels the pack as a
+    ``User ruleset`` instead of ``Bundled`` — a cosmetic mismatch we accept
+    in exchange for working offline and against unreleased SHAs.
+
+    Non-``builtin`` ``--ruleset`` values and unrelated tokens are returned
+    unchanged.
+    """
+    if not flags:
+        return []
+    rules_path = str(rules_dir.resolve())
+    out: list[str] = []
+    i = 0
+    n = len(flags)
+    while i < n:
+        tok = flags[i]
+        out.append(tok)
+        if tok == RULESET_FLAG and i + 1 < n:
+            value = flags[i + 1]
+            out.append(rules_path if value == BUILTIN_RULESET else value)
+            i += 2
+        else:
+            i += 1
+    return out
+
+
+def _build_scan_cmd(opentaint: Path, analyzer_jar: Path, rules_dir: Path,
                     model_dir: Path, sarif: Path, max_memory: str,
                     scan_timeout_seconds: int,
                     extra_flags: list[str]) -> list[str]:
     """Assemble the ``opentaint scan`` argv.
 
-    Ruleset policy (mirrors ``opentaint scan --help``'s ``default [builtin]``):
+    Ruleset policy:
 
-    * If ``extra_flags`` already contains at least one ``--ruleset`` token,
-      it is passed through verbatim — the project is in full control and
-      may layer ``builtin``, YAML files, and directories in any order.
-    * Otherwise the runner inserts ``--ruleset builtin`` so the JAR-baked
-      rule pack is used. We deliberately do **not** auto-add the
-      source-tree rule pack staged at ``<build-dir>/rules`` — doing so
-      historically misled the analyzer into reporting that pack as the
-      built-in one. Projects that still want it can ask for it explicitly
-      with ``--ruleset {rules}`` in their ``scan-flags``.
+    * ``builtin`` everywhere in ``extra_flags`` is first rewritten to the
+      absolute path of ``rules_dir`` (see ``_resolve_builtin_ruleset``).
+    * If after that rewrite ``extra_flags`` still contains at least one
+      ``--ruleset`` token, it is passed through verbatim — the project is
+      in full control and may layer the staged pack, custom YAML files
+      and directories in any order.
+    * Otherwise the runner inserts ``--ruleset <rules_dir>`` as the
+      implicit default, matching the spirit of the CLI's
+      ``default [builtin]``.
     """
-    if any(tok == RULESET_FLAG for tok in extra_flags):
+    resolved_flags = _resolve_builtin_ruleset(extra_flags, rules_dir)
+    if any(tok == RULESET_FLAG for tok in resolved_flags):
         ruleset_args: list[str] = []
     else:
-        ruleset_args = [RULESET_FLAG, BUILTIN_RULESET]
+        ruleset_args = [RULESET_FLAG, str(rules_dir.resolve())]
     return [
         str(opentaint), "scan", "--debug",
         "--experimental",
@@ -214,7 +267,7 @@ def _build_scan_cmd(opentaint: Path, analyzer_jar: Path,
         "--output", str(sarif),
         "--timeout", f"{scan_timeout_seconds}s",
         "--max-memory", max_memory,
-        *extra_flags,
+        *resolved_flags,
     ]
 
 
@@ -253,6 +306,7 @@ def run_pipeline(build_dir: Path, project_dir: Path, results_dir: Path,
     scan_cmd = _build_scan_cmd(
         opentaint=opentaint,
         analyzer_jar=analyzer_jar,
+        rules_dir=rules_dir,
         model_dir=model_dir,
         sarif=sarif,
         max_memory=max_memory,

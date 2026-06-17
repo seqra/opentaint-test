@@ -336,10 +336,18 @@ def test_expand_scan_flags_empty_passthrough():
 
 # ── run_analysis: scan-cmd assembly + ruleset policy ───────────────────
 
+# Centralised so all tests use the same staged-rules path — the runner now
+# rewrites ``builtin`` to this path and uses it as the implicit default.
+_STAGED_RULES_SUBDIR = "build-rules"
+
+
 def _scan_cmd(extra_flags, tmp_path):
+    rules_dir = tmp_path / _STAGED_RULES_SUBDIR
+    rules_dir.mkdir(exist_ok=True)
     return run_analysis._build_scan_cmd(
         opentaint=tmp_path / "opentaint",
         analyzer_jar=tmp_path / "analyzer.jar",
+        rules_dir=rules_dir,
         model_dir=tmp_path / "model",
         sarif=tmp_path / "out.sarif",
         max_memory="8G",
@@ -348,23 +356,26 @@ def _scan_cmd(extra_flags, tmp_path):
     )
 
 
+def _staged_rules(tmp_path):
+    return str((tmp_path / _STAGED_RULES_SUBDIR).resolve())
+
+
 def _rulesets_in(cmd):
     """Return the values that follow every occurrence of '--ruleset' in cmd."""
     return [cmd[i + 1] for i, tok in enumerate(cmd) if tok == "--ruleset"]
 
 
-def test_build_scan_cmd_default_inserts_builtin_sentinel(tmp_path):
-    """With no project --ruleset, the runner must default to ``builtin`` —
-    NOT to a filesystem path (which opentaint would classify as a
-    'User ruleset')."""
+def test_build_scan_cmd_default_uses_staged_rules(tmp_path):
+    """With no project --ruleset, the runner defaults to the staged
+    source-tree pack at ``<build>/rules`` — *not* the CLI's ``builtin``
+    sentinel (which would trigger a 404 GitHub-release download)."""
     cmd = _scan_cmd([], tmp_path)
-    assert _rulesets_in(cmd) == ["builtin"]
+    assert _rulesets_in(cmd) == [_staged_rules(tmp_path)]
 
 
 def test_build_scan_cmd_project_ruleset_disables_default(tmp_path):
-    """Once the project supplies any --ruleset, the runner adds none of
-    its own — the project is in full control and may layer ``builtin``
-    plus custom rules in any order."""
+    """Once the project supplies any --ruleset, the runner adds no default
+    of its own — the project owns the ruleset list."""
     cmd = _scan_cmd(
         ["--ruleset", "/abs/custom-rules.yaml",
          "--ruleset", "/abs/rules-dir"],
@@ -376,14 +387,34 @@ def test_build_scan_cmd_project_ruleset_disables_default(tmp_path):
     ]
 
 
-def test_build_scan_cmd_project_can_request_builtin_explicitly(tmp_path):
-    """Projects may stack ``builtin`` alongside their own rule files."""
+def test_build_scan_cmd_translates_builtin_sentinel(tmp_path):
+    """``--ruleset builtin`` from the project is silently rewritten to the
+    staged source-tree pack. The CLI's network-download path is bypassed."""
     cmd = _scan_cmd(
         ["--ruleset", "builtin", "--ruleset", "/abs/extra.yaml"],
         tmp_path,
     )
-    # Exactly what the project asked for — no duplicated `builtin`.
-    assert _rulesets_in(cmd) == ["builtin", "/abs/extra.yaml"]
+    assert _rulesets_in(cmd) == [
+        _staged_rules(tmp_path),   # was 'builtin'
+        "/abs/extra.yaml",
+    ]
+
+
+def test_build_scan_cmd_only_builtin_disables_default(tmp_path):
+    """A lone ``--ruleset builtin`` must not provoke a duplicate default —
+    the project supplied a --ruleset, so the runner adds nothing."""
+    cmd = _scan_cmd(["--ruleset", "builtin"], tmp_path)
+    assert _rulesets_in(cmd) == [_staged_rules(tmp_path)]
+
+
+def test_build_scan_cmd_non_value_builtin_untouched(tmp_path):
+    """A stray ``builtin`` token NOT in --ruleset value position must be
+    left alone (defensive against unrelated future flags)."""
+    cmd = _scan_cmd(["--rule-id", "builtin"], tmp_path)
+    # Default --ruleset still gets inserted (project supplied none).
+    assert _rulesets_in(cmd) == [_staged_rules(tmp_path)]
+    # The lone 'builtin' rides the tail untouched.
+    assert cmd[-2:] == ["--rule-id", "builtin"]
 
 
 def test_build_scan_cmd_extra_flags_appear_after_reserved(tmp_path):
@@ -397,13 +428,16 @@ def test_build_scan_cmd_extra_flags_appear_after_reserved(tmp_path):
 def test_build_scan_cmd_end_to_end_through_expand(tmp_path):
     ext = tmp_path / "ext"; ext.mkdir()
     expanded = run_analysis._expand_scan_flags(
-        ["--ruleset", "{ext}/proj/rules.yaml",
+        ["--ruleset", "builtin",
+         "--ruleset", "{ext}/proj/rules.yaml",
          "--ruleset", "{ext}/proj/rules"],
         ext,
     )
     cmd = _scan_cmd(expanded, tmp_path)
-    # Project supplied --ruleset, so runner must NOT add its own default.
+    # `builtin` is translated to the staged pack; project paths are kept
+    # verbatim; runner adds no default of its own.
     assert _rulesets_in(cmd) == [
+        _staged_rules(tmp_path),
         f"{ext.resolve()}/proj/rules.yaml",
         f"{ext.resolve()}/proj/rules",
     ]

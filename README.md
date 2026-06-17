@@ -102,17 +102,24 @@ take a single file or a whole directory, and may be repeated):
 
 Flags reserved by the runner (`--analyzer-jar`, `--project-model`,
 `--output`, `--timeout`, `--max-memory`, `--debug`, `--experimental`) must
-not be repeated here. `--ruleset` is **not** reserved — the runner only
-inserts the documented default `--ruleset builtin` when `scan-flags`
-contains no `--ruleset` of its own. Supplying any `--ruleset` value puts
-the project in full control of which rule packs are loaded and in what
-order. Example — stack the JAR-baked `builtin` pack with a custom YAML
-file and a whole directory of rules:
+not be repeated here. `--ruleset` is **not** reserved — if `scan-flags`
+contains no `--ruleset`, the runner inserts a default pointing at the
+staged source-tree rule pack at `<build>/rules` (copied from
+`opentaint/rules/ruleset` at build time). Supplying any `--ruleset` value
+puts the project in full control of which rule packs are loaded and in
+what order.
+
+The literal value `builtin` is **rewritten by the runner** to that same
+staged pack — the CLI would otherwise try to fetch the pack from a GitHub
+release that does not exist for in-development opentaint SHAs (and the
+current CLI's URL is malformed, producing a 404 against
+`api.github.com/repos/seqra/seqra/opentaint/…`). Example — stack
+`builtin` with a custom YAML file and a custom rules directory:
 
 ```yaml
 scan-flags:
   - --ruleset
-  - builtin                                          # JAR-baked default pack
+  - builtin                                          # → <build>/rules (staged)
   - --ruleset
   - "{ext}/my-project/rules/sql-injection.yaml"     # custom YAML file
   - --ruleset
@@ -122,13 +129,13 @@ scan-flags:
 Two placeholders are expanded inside `scan-flags`:
 
 * `{ext}`    → absolute path of `projects/extensions/`.
-* `{rules}`  → absolute path of the opentaint source-tree rule pack staged
-  at `<build>/rules`. Use this to layer that pack (which is **not** the
-  same as `builtin`) on top of, or instead of, the JAR-baked rules.
+* `{rules}`  → absolute path of the staged source-tree pack at
+  `<build>/rules`. After the `builtin` rewrite, mostly redundant for
+  `--ruleset` values; still useful for other flags that take a rules
+  directory.
 
 See [`projects/extensions/README.md`](projects/extensions/README.md) for
-the layout convention and a deeper look at `builtin` vs `{rules}` vs
-custom YAMLs.
+the layout convention and the rationale behind the `builtin` rewrite.
 
 ## Open items
 

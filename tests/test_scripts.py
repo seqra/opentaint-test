@@ -334,13 +334,12 @@ def test_expand_scan_flags_empty_passthrough():
     assert run_analysis._expand_scan_flags([], None) == []
 
 
-# ── run_analysis: scan-cmd assembly + multi-ruleset merging ───────────────
+# ── run_analysis: scan-cmd assembly + ruleset policy ───────────────────
 
 def _scan_cmd(extra_flags, tmp_path):
     return run_analysis._build_scan_cmd(
         opentaint=tmp_path / "opentaint",
         analyzer_jar=tmp_path / "analyzer.jar",
-        rules_dir=tmp_path / "built-in-rules",
         model_dir=tmp_path / "model",
         sarif=tmp_path / "out.sarif",
         max_memory="8G",
@@ -354,33 +353,44 @@ def _rulesets_in(cmd):
     return [cmd[i + 1] for i, tok in enumerate(cmd) if tok == "--ruleset"]
 
 
-def test_build_scan_cmd_default_passes_builtin_ruleset(tmp_path):
+def test_build_scan_cmd_default_inserts_builtin_sentinel(tmp_path):
+    """With no project --ruleset, the runner must default to ``builtin`` —
+    NOT to a filesystem path (which opentaint would classify as a
+    'User ruleset')."""
     cmd = _scan_cmd([], tmp_path)
-    assert _rulesets_in(cmd) == [str(tmp_path / "built-in-rules")]
+    assert _rulesets_in(cmd) == ["builtin"]
 
 
-def test_build_scan_cmd_extra_ruleset_merges_with_builtin(tmp_path):
+def test_build_scan_cmd_project_ruleset_disables_default(tmp_path):
+    """Once the project supplies any --ruleset, the runner adds none of
+    its own — the project is in full control and may layer ``builtin``
+    plus custom rules in any order."""
     cmd = _scan_cmd(
         ["--ruleset", "/abs/custom-rules.yaml",
          "--ruleset", "/abs/rules-dir"],
         tmp_path,
     )
-    # Built-in first; custom values appended in order — analyzer treats
-    # --ruleset as stringArray and merges them.
     assert _rulesets_in(cmd) == [
-        str(tmp_path / "built-in-rules"),
         "/abs/custom-rules.yaml",
         "/abs/rules-dir",
     ]
 
 
+def test_build_scan_cmd_project_can_request_builtin_explicitly(tmp_path):
+    """Projects may stack ``builtin`` alongside their own rule files."""
+    cmd = _scan_cmd(
+        ["--ruleset", "builtin", "--ruleset", "/abs/extra.yaml"],
+        tmp_path,
+    )
+    # Exactly what the project asked for — no duplicated `builtin`.
+    assert _rulesets_in(cmd) == ["builtin", "/abs/extra.yaml"]
+
+
 def test_build_scan_cmd_extra_flags_appear_after_reserved(tmp_path):
     cmd = _scan_cmd(["--rule-id", "java.taint.sql-injection"], tmp_path)
-    # Reserved tokens are present…
     for required in ("--analyzer-jar", "--project-model", "--output",
                       "--timeout", "--max-memory", "--debug", "--experimental"):
         assert required in cmd, f"missing reserved flag {required}"
-    # …and the user's extra flag is appended verbatim at the tail.
     assert cmd[-2:] == ["--rule-id", "java.taint.sql-injection"]
 
 
@@ -392,10 +402,43 @@ def test_build_scan_cmd_end_to_end_through_expand(tmp_path):
         ext,
     )
     cmd = _scan_cmd(expanded, tmp_path)
+    # Project supplied --ruleset, so runner must NOT add its own default.
     assert _rulesets_in(cmd) == [
-        str(tmp_path / "built-in-rules"),
         f"{ext.resolve()}/proj/rules.yaml",
         f"{ext.resolve()}/proj/rules",
+    ]
+
+
+# ── run_analysis: {rules} placeholder ───────────────────────────────
+
+def test_expand_rules_placeholder(tmp_path):
+    rules = tmp_path / "rules"; rules.mkdir()
+    expanded = run_analysis._expand_scan_flags(
+        ["--ruleset", "{rules}"], extensions_dir=None, rules_dir=rules,
+    )
+    assert expanded == ["--ruleset", str(rules.resolve())]
+
+
+def test_expand_rules_placeholder_missing_rules_dir_raises():
+    with pytest.raises(ValueError):
+        run_analysis._expand_scan_flags(
+            ["--ruleset", "{rules}"], extensions_dir=None, rules_dir=None,
+        )
+
+
+def test_expand_mixed_placeholders(tmp_path):
+    ext = tmp_path / "ext"; ext.mkdir()
+    rules = tmp_path / "rules"; rules.mkdir()
+    expanded = run_analysis._expand_scan_flags(
+        ["--ruleset", "builtin",
+         "--ruleset", "{rules}",
+         "--ruleset", "{ext}/proj/custom.yaml"],
+        extensions_dir=ext, rules_dir=rules,
+    )
+    assert expanded == [
+        "--ruleset", "builtin",
+        "--ruleset", str(rules.resolve()),
+        "--ruleset", f"{ext.resolve()}/proj/custom.yaml",
     ]
 
 

@@ -102,22 +102,33 @@ take a single file or a whole directory, and may be repeated):
 
 Flags reserved by the runner (`--analyzer-jar`, `--project-model`,
 `--output`, `--timeout`, `--max-memory`, `--debug`, `--experimental`) must
-not be repeated here. `--ruleset` is **not** reserved: the runner always
-passes the built-in ruleset first, and any additional `--ruleset` entries
-in `scan-flags` are merged with it by the analyzer (the flag is a
-`stringArray`). Example — adding a custom YAML file and a whole directory
-of rules:
+not be repeated here. `--ruleset` is **not** reserved — the runner only
+inserts the documented default `--ruleset builtin` when `scan-flags`
+contains no `--ruleset` of its own. Supplying any `--ruleset` value puts
+the project in full control of which rule packs are loaded and in what
+order. Example — stack the JAR-baked `builtin` pack with a custom YAML
+file and a whole directory of rules:
 
 ```yaml
 scan-flags:
   - --ruleset
-  - "{ext}/my-project/rules/sql-injection.yaml"
+  - builtin                                          # JAR-baked default pack
   - --ruleset
-  - "{ext}/my-project/rules"
+  - "{ext}/my-project/rules/sql-injection.yaml"     # custom YAML file
+  - --ruleset
+  - "{ext}/my-project/rules"                        # custom rules directory
 ```
 
+Two placeholders are expanded inside `scan-flags`:
+
+* `{ext}`    → absolute path of `projects/extensions/`.
+* `{rules}`  → absolute path of the opentaint source-tree rule pack staged
+  at `<build>/rules`. Use this to layer that pack (which is **not** the
+  same as `builtin`) on top of, or instead of, the JAR-baked rules.
+
 See [`projects/extensions/README.md`](projects/extensions/README.md) for
-the layout convention.
+the layout convention and a deeper look at `builtin` vs `{rules}` vs
+custom YAMLs.
 
 ## Open items
 

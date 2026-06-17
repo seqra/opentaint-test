@@ -71,16 +71,31 @@ Flags that don't reference any extension file (e.g. `--rule-id`,
 
 ## Custom rulesets
 
-The analyzer accepts **multiple** `--ruleset` arguments and merges them. The
-runner always passes the built-in ruleset first; any additional `--ruleset`
-entries in `scan-flags` are layered on top:
+The analyzer's `--ruleset` is a `stringArray` whose default is `[builtin]`
+(see `opentaint scan --help`). The literal value **`builtin`** is a sentinel
+that tells the analyzer to load the rule pack baked into its JAR. Any other
+value is treated as a path — a YAML file or a directory of `*.yml` / `*.yaml`
+files — and reported as a *User ruleset*.
+
+The runner does **not** force any `--ruleset` flag:
+
+* If `scan-flags` contains no `--ruleset`, the runner inserts the documented
+  default `--ruleset builtin` so the JAR-baked pack is used.
+* If `scan-flags` supplies one or more `--ruleset` tokens, they are passed
+  verbatim and the runner adds none of its own. The project is in full
+  control of what gets loaded and in what order.
+
+To layer the built-in pack with your own rules, ask for `builtin` explicitly:
 
 ```yaml
 - name: spring-petclinic
   git: https://github.com/spring-projects/spring-petclinic.git
   head: 3e1ce239f4488f20abda24441388a515ea55a815
   scan-flags:
-    # Add a single custom YAML rules file:
+    # JAR-baked built-in pack — the literal sentinel, not a path:
+    - --ruleset
+    - builtin
+    # A single custom YAML file:
     - --ruleset
     - "{ext}/spring-petclinic/rules/sql-injection.yaml"
     # …and a whole directory of `*.yaml` / `*.yml` rule files:
@@ -89,9 +104,27 @@ entries in `scan-flags` are layered on top:
 ```
 
 Resulting analyzer command (conceptually):
-`--ruleset <built-in> --ruleset <ext>/.../sql-injection.yaml --ruleset <ext>/.../rules`.
+`--ruleset builtin --ruleset <ext>/.../sql-injection.yaml --ruleset <ext>/.../rules`.
 
 Use `--rule-id` to narrow which rules from those sets are actually run.
+
+### The `{rules}` placeholder — opentaint source-tree rules
+
+The build artifact ships the YAML rule pack from the opentaint source tree
+at `<build-dir>/rules`. It is **not** the same as `builtin` (which lives
+inside the analyzer JAR). If you want to layer that pack on top of — or
+instead of — `builtin`, reference it via the `{rules}` placeholder:
+
+```yaml
+  scan-flags:
+    - --ruleset
+    - builtin           # JAR-baked pack
+    - --ruleset
+    - "{rules}"          # opentaint source-tree pack staged at <build>/rules
+```
+
+The runner expands `{rules}` to the absolute path of `<build-dir>/rules` at
+analysis time.
 
 ## Reserved flags
 
@@ -106,5 +139,6 @@ The runner already sets these and you should **not** repeat them in
 - `--debug`
 - `--experimental`
 
-`--ruleset` is **not** reserved — the built-in pack is always supplied, and
-additional `--ruleset` entries you add in `scan-flags` are merged with it.
+`--ruleset` is **not** reserved. The runner only inserts a default
+`--ruleset builtin` when the project omits the flag entirely; supplying
+any `--ruleset` value disables the default.

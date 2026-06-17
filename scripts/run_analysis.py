@@ -19,10 +19,21 @@ Usage:
         [--scan-flags-json '["--rule-id", "java.taint.sql-injection"]']
 
 Extra `opentaint scan` flags may be supplied via ``--scan-flags-json``
-(a JSON-encoded list of CLI tokens). The literal substring ``{ext}`` inside
-any token is replaced with the absolute path passed via
-``--extensions-dir``, letting projects reference files shipped in this
-repository (e.g. pass-through approximations) without hard-coding paths.
+(a JSON-encoded list of CLI tokens). Two placeholders are expanded inside
+every token before invoking opentaint:
+
+* ``{ext}``    → absolute path of ``--extensions-dir``  (project files
+  shipped in this repo, e.g. ``{ext}/conductor/passthrough``).
+* ``{rules}``  → absolute path of the opentaint source-tree rule pack
+  staged at ``<build-dir>/rules``  (use this only when you want those
+  YAMLs layered on top of, or instead of, the analyzer's ``builtin`` pack).
+
+Ruleset handling: the runner does **not** force any ``--ruleset`` flag. If
+the project's ``scan-flags`` contains no ``--ruleset``, the runner inserts
+the analyzer's documented default ``--ruleset builtin`` so the JAR-baked
+rule pack is loaded. If the project supplies one or more ``--ruleset``
+tokens (including the literal ``builtin``), they are passed verbatim and
+the runner adds nothing of its own.
 
 Exit codes:
     0  status.json was written, autobuilder (compile step) succeeded.
@@ -43,9 +54,21 @@ import sys
 import time
 from pathlib import Path
 
-# Placeholder used inside `scan-flags` entries in repos.yaml. Replaced at
-# runtime with the absolute path of the extensions directory.
+# Placeholders used inside `scan-flags` entries in repos.yaml. Replaced at
+# runtime with the absolute paths of, respectively, the per-project
+# extensions directory and the source-tree rule pack staged into the build
+# artifact at <build-dir>/rules.
 EXT_PLACEHOLDER = "{ext}"
+RULES_PLACEHOLDER = "{rules}"
+
+# Sentinel value accepted by `opentaint scan --ruleset`. Tells the analyzer
+# to use the rule pack baked into its JAR rather than a file/directory path.
+BUILTIN_RULESET = "builtin"
+
+# Token (as it appears in argv) that introduces a ruleset value. Used to
+# decide whether the project already supplied at least one --ruleset so we
+# don't override their choice.
+RULESET_FLAG = "--ruleset"
 
 
 _LOG_FILE_RE = re.compile(r"Log file:\s*(.+\.log)")
@@ -128,41 +151,65 @@ def _run(cmd: list[str], timeout: int, log_fp) -> tuple[int, str, str, float]:
     return rc, out, err, dur
 
 
-def _expand_scan_flags(flags: list[str], extensions_dir: Path | None) -> list[str]:
-    """Substitute ``{ext}`` in every token with ``extensions_dir`` (absolute).
+def _expand_scan_flags(flags: list[str],
+                       extensions_dir: Path | None,
+                       rules_dir: Path | None = None) -> list[str]:
+    """Substitute ``{ext}`` and ``{rules}`` placeholders in every token.
 
-    Raises a clear error if a token references the placeholder but no
-    extensions directory was supplied.
+    * ``{ext}``    → absolute path of ``extensions_dir``.
+    * ``{rules}``  → absolute path of ``rules_dir`` (the staged opentaint
+      source-tree rule pack at ``<build-dir>/rules``).
+
+    Raises a clear error if a token references a placeholder whose
+    backing path was not supplied.
     """
     if not flags:
         return []
     needs_ext = any(EXT_PLACEHOLDER in tok for tok in flags)
+    needs_rules = any(RULES_PLACEHOLDER in tok for tok in flags)
     if needs_ext and extensions_dir is None:
         raise ValueError(
             f"scan-flags contains {EXT_PLACEHOLDER!r} but no --extensions-dir "
             "was provided")
+    if needs_rules and rules_dir is None:
+        raise ValueError(
+            f"scan-flags contains {RULES_PLACEHOLDER!r} but no rules "
+            "directory is available")
     ext_str = str(extensions_dir.resolve()) if extensions_dir is not None else ""
-    return [tok.replace(EXT_PLACEHOLDER, ext_str) for tok in flags]
+    rules_str = str(rules_dir.resolve()) if rules_dir is not None else ""
+    return [
+        tok.replace(EXT_PLACEHOLDER, ext_str).replace(RULES_PLACEHOLDER, rules_str)
+        for tok in flags
+    ]
 
 
-def _build_scan_cmd(opentaint: Path, analyzer_jar: Path, rules_dir: Path,
+def _build_scan_cmd(opentaint: Path, analyzer_jar: Path,
                     model_dir: Path, sarif: Path, max_memory: str,
                     scan_timeout_seconds: int,
                     extra_flags: list[str]) -> list[str]:
     """Assemble the ``opentaint scan`` argv.
 
-    The built-in ``--ruleset <rules_dir>`` is always passed first. Any
-    additional ``--ruleset`` entries supplied by the project (via
-    ``scan-flags`` in ``repos.yaml``) are appended verbatim through
-    ``extra_flags`` and are *merged* with the built-in pack by the analyzer
-    — ``--ruleset`` is a ``stringArray``, so repetition is additive rather
-    than overriding.
+    Ruleset policy (mirrors ``opentaint scan --help``'s ``default [builtin]``):
+
+    * If ``extra_flags`` already contains at least one ``--ruleset`` token,
+      it is passed through verbatim — the project is in full control and
+      may layer ``builtin``, YAML files, and directories in any order.
+    * Otherwise the runner inserts ``--ruleset builtin`` so the JAR-baked
+      rule pack is used. We deliberately do **not** auto-add the
+      source-tree rule pack staged at ``<build-dir>/rules`` — doing so
+      historically misled the analyzer into reporting that pack as the
+      built-in one. Projects that still want it can ask for it explicitly
+      with ``--ruleset {rules}`` in their ``scan-flags``.
     """
+    if any(tok == RULESET_FLAG for tok in extra_flags):
+        ruleset_args: list[str] = []
+    else:
+        ruleset_args = [RULESET_FLAG, BUILTIN_RULESET]
     return [
         str(opentaint), "scan", "--debug",
         "--experimental",
         "--analyzer-jar", str(analyzer_jar),
-        "--ruleset", str(rules_dir),
+        *ruleset_args,
         "--project-model", str(model_dir),
         "--output", str(sarif),
         "--timeout", f"{scan_timeout_seconds}s",
@@ -185,7 +232,8 @@ def run_pipeline(build_dir: Path, project_dir: Path, results_dir: Path,
         if not p.exists():
             raise FileNotFoundError(f"missing build artifact: {p}")
 
-    expanded_extra_flags = _expand_scan_flags(scan_flags or [], extensions_dir)
+    expanded_extra_flags = _expand_scan_flags(
+        scan_flags or [], extensions_dir, rules_dir=rules_dir)
 
     # Keep project-model OUTSIDE results_dir so it is never cached or uploaded
     # as part of the per-project result bundle (multi-GB per project otherwise).
@@ -205,7 +253,6 @@ def run_pipeline(build_dir: Path, project_dir: Path, results_dir: Path,
     scan_cmd = _build_scan_cmd(
         opentaint=opentaint,
         analyzer_jar=analyzer_jar,
-        rules_dir=rules_dir,
         model_dir=model_dir,
         sarif=sarif,
         max_memory=max_memory,

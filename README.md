@@ -40,6 +40,7 @@ Full diff detail is available in the `regression-diff` artifact.
 | --------------------------------- | ------------------------------------------------------------- |
 | `.github/workflows/regression.yaml` | Workflow: resolve → probe → build → analyze → compare.     |
 | `projects/repos.yaml`             | Benchmark project list (name, git URL, pinned head, etc.).   |
+| `projects/extensions/`            | Files (passthroughs, approximations, custom rules…) referenced by per-project `scan-flags`. |
 | `scripts/build_opentaint.sh`      | Build analyzer + autobuilder JARs and Go CLI from a checkout.|
 | `scripts/generate_matrix.py`      | Expand `repos.yaml` into a GH Actions matrix.                |
 | `scripts/run_analysis.py`         | Run opentaint `compile` + `scan`, extract analyzer status.   |
@@ -72,6 +73,51 @@ skipped entirely.
 cd new-test
 python -m pytest tests -v
 ```
+
+## Per-project `opentaint scan` flags
+
+Each entry in `projects/repos.yaml` may declare a `scan-flags` list whose
+tokens are appended verbatim to the `opentaint scan` invocation. Use the
+literal substring `{ext}` to reference files shipped in `projects/extensions/`
+— the runner substitutes it with that directory's absolute path. Since the
+substitution is plain string replacement, the resolved path may point at
+either a **file** or a **directory** — whichever the underlying flag accepts
+(e.g. `--passthrough-approximations` and `--dataflow-approximations` each
+take a single file or a whole directory, and may be repeated):
+
+```yaml
+- name: spring-petclinic
+  git: https://github.com/spring-projects/spring-petclinic.git
+  head: 3e1ce239f4488f20abda24441388a515ea55a815
+  scan-flags:
+    - --passthrough-approximations              # single YAML file
+    - "{ext}/spring-petclinic/passthroughs.yaml"
+    - --passthrough-approximations              # …or repeat with a directory
+    - "{ext}/spring-petclinic/passthroughs"
+    - --dataflow-approximations                 # directory of approximations
+    - "{ext}/spring-petclinic/approximations"
+    - --rule-id
+    - java.taint.sql-injection
+```
+
+Flags reserved by the runner (`--analyzer-jar`, `--project-model`,
+`--output`, `--timeout`, `--max-memory`, `--debug`, `--experimental`) must
+not be repeated here. `--ruleset` is **not** reserved: the runner always
+passes the built-in ruleset first, and any additional `--ruleset` entries
+in `scan-flags` are merged with it by the analyzer (the flag is a
+`stringArray`). Example — adding a custom YAML file and a whole directory
+of rules:
+
+```yaml
+scan-flags:
+  - --ruleset
+  - "{ext}/my-project/rules/sql-injection.yaml"
+  - --ruleset
+  - "{ext}/my-project/rules"
+```
+
+See [`projects/extensions/README.md`](projects/extensions/README.md) for
+the layout convention.
 
 ## Open items
 

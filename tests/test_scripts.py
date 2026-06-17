@@ -16,6 +16,7 @@ sys.path.insert(0, str(HERE.parent / "scripts"))
 
 import cache_key  # noqa: E402
 import compare_sarif  # noqa: E402
+import generate_matrix  # noqa: E402
 import run_analysis  # noqa: E402
 
 
@@ -226,7 +227,155 @@ def test_extract_peak_memory_missing_file(tmp_path):
     assert run_analysis.extract_peak_memory(None) is None
 
 
-# ── compare_sarif: markdown rendering smoke test ────────────────────────────
+# ── generate_matrix: scan-flags propagation ────────────────────────────
+
+def _write_repos(tmp_path: Path, body: str) -> Path:
+    p = tmp_path / "repos.yaml"
+    p.write_text(body)
+    return p
+
+
+def test_matrix_scan_flags_default_empty(tmp_path):
+    repos = _write_repos(tmp_path, (
+        "repositories:\n"
+        "  - name: demo\n"
+        "    git: https://example.com/demo.git\n"
+        "    head: deadbeef\n"
+    ))
+    m = generate_matrix.build_matrix(repos, "AAA", "BBB", [], None)
+    assert [e["scan_flags"] for e in m["include"]] == ["[]", "[]"]
+
+
+def test_matrix_scan_flags_round_trip(tmp_path):
+    repos = _write_repos(tmp_path, (
+        "repositories:\n"
+        "  - name: demo\n"
+        "    git: https://example.com/demo.git\n"
+        "    head: deadbeef\n"
+        "    scan-flags:\n"
+        "      - --rule-id\n"
+        "      - java.taint.sql-injection\n"
+        "      - \"--passthrough-approximations\"\n"
+        "      - \"{ext}/demo/pt.yaml\"\n"
+    ))
+    m = generate_matrix.build_matrix(repos, "AAA", "AAA", [], None)
+    assert len(m["include"]) == 1
+    assert json.loads(m["include"][0]["scan_flags"]) == [
+        "--rule-id", "java.taint.sql-injection",
+        "--passthrough-approximations", "{ext}/demo/pt.yaml",
+    ]
+
+
+def test_matrix_scan_flags_rejects_non_list(tmp_path):
+    repos = _write_repos(tmp_path, (
+        "repositories:\n"
+        "  - name: demo\n"
+        "    git: https://example.com/demo.git\n"
+        "    head: deadbeef\n"
+        "    scan-flags: --rule-id=foo\n"
+    ))
+    with pytest.raises(ValueError):
+        generate_matrix.build_matrix(repos, "AAA", "AAA", [], None)
+
+
+# ── run_analysis: scan-flag expansion ────────────────────────────────
+
+def test_expand_scan_flags_substitutes_ext(tmp_path):
+    ext = tmp_path / "ext"; ext.mkdir()
+    expanded = run_analysis._expand_scan_flags(
+        ["--passthrough-approximations", "{ext}/demo/pt.yaml", "--rule-id", "r1"],
+        ext,
+    )
+    assert expanded == [
+        "--passthrough-approximations",
+        f"{ext.resolve()}/demo/pt.yaml",
+        "--rule-id",
+        "r1",
+    ]
+
+
+def test_expand_scan_flags_no_placeholder_no_ext_ok():
+    # Tokens without {ext} don't require an extensions directory.
+    assert run_analysis._expand_scan_flags(["--rule-id", "r1"], None) == [
+        "--rule-id", "r1",
+    ]
+
+
+def test_expand_scan_flags_missing_ext_raises():
+    with pytest.raises(ValueError):
+        run_analysis._expand_scan_flags(["{ext}/demo/pt.yaml"], None)
+
+
+def test_expand_scan_flags_empty_passthrough():
+    assert run_analysis._expand_scan_flags([], None) == []
+
+
+# ── run_analysis: scan-cmd assembly + multi-ruleset merging ───────────────
+
+def _scan_cmd(extra_flags, tmp_path):
+    return run_analysis._build_scan_cmd(
+        opentaint=tmp_path / "opentaint",
+        analyzer_jar=tmp_path / "analyzer.jar",
+        rules_dir=tmp_path / "built-in-rules",
+        model_dir=tmp_path / "model",
+        sarif=tmp_path / "out.sarif",
+        max_memory="8G",
+        scan_timeout_seconds=1080,
+        extra_flags=extra_flags,
+    )
+
+
+def _rulesets_in(cmd):
+    """Return the values that follow every occurrence of '--ruleset' in cmd."""
+    return [cmd[i + 1] for i, tok in enumerate(cmd) if tok == "--ruleset"]
+
+
+def test_build_scan_cmd_default_passes_builtin_ruleset(tmp_path):
+    cmd = _scan_cmd([], tmp_path)
+    assert _rulesets_in(cmd) == [str(tmp_path / "built-in-rules")]
+
+
+def test_build_scan_cmd_extra_ruleset_merges_with_builtin(tmp_path):
+    cmd = _scan_cmd(
+        ["--ruleset", "/abs/custom-rules.yaml",
+         "--ruleset", "/abs/rules-dir"],
+        tmp_path,
+    )
+    # Built-in first; custom values appended in order — analyzer treats
+    # --ruleset as stringArray and merges them.
+    assert _rulesets_in(cmd) == [
+        str(tmp_path / "built-in-rules"),
+        "/abs/custom-rules.yaml",
+        "/abs/rules-dir",
+    ]
+
+
+def test_build_scan_cmd_extra_flags_appear_after_reserved(tmp_path):
+    cmd = _scan_cmd(["--rule-id", "java.taint.sql-injection"], tmp_path)
+    # Reserved tokens are present…
+    for required in ("--analyzer-jar", "--project-model", "--output",
+                      "--timeout", "--max-memory", "--debug", "--experimental"):
+        assert required in cmd, f"missing reserved flag {required}"
+    # …and the user's extra flag is appended verbatim at the tail.
+    assert cmd[-2:] == ["--rule-id", "java.taint.sql-injection"]
+
+
+def test_build_scan_cmd_end_to_end_through_expand(tmp_path):
+    ext = tmp_path / "ext"; ext.mkdir()
+    expanded = run_analysis._expand_scan_flags(
+        ["--ruleset", "{ext}/proj/rules.yaml",
+         "--ruleset", "{ext}/proj/rules"],
+        ext,
+    )
+    cmd = _scan_cmd(expanded, tmp_path)
+    assert _rulesets_in(cmd) == [
+        str(tmp_path / "built-in-rules"),
+        f"{ext.resolve()}/proj/rules.yaml",
+        f"{ext.resolve()}/proj/rules",
+    ]
+
+
+# ── compare_sarif: markdown rendering smoke test ──────────────────────────
 
 def test_render_markdown_smoke():
     md = compare_sarif.render_markdown([

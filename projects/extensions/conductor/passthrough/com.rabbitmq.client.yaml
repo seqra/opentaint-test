@@ -1,0 +1,33 @@
+# Pass-through approximations for com.rabbitmq.client methods.
+#
+# Models the dropped (not-yet-approximated) RabbitMQ methods listed in the
+# tracking unit com_rabbitmq_client-passthrough.yaml. These carry tainted
+# names/args onto the receiver (channel/connection state) and into the
+# returned declaration/connection object.
+#
+# OVERRIDE mode: merged with built-ins at the rule level (per-method, additive).
+passThrough:
+  # Channel.exchangeDeclare(exchange, type, ...) -> tainted exchange name stays
+  # on the channel and flows into the returned DeclareOk.
+  - function: com.rabbitmq.client.Channel#exchangeDeclare
+    copy:
+      - from: arg(0)
+        to: this
+      - from: arg(0)
+        to: result
+
+  # Channel.queueDeclare(queue, ...) -> tainted queue name stays on the channel
+  # and flows into the returned DeclareOk.
+  - function: com.rabbitmq.client.Channel#queueDeclare
+    copy:
+      - from: arg(0)
+        to: this
+      - from: arg(0)
+        to: result
+
+  # ConnectionFactory.newConnection(...) -> tainted connection args flow into
+  # the returned Connection.
+  - function: com.rabbitmq.client.ConnectionFactory#newConnection
+    copy:
+      - from: arg(0)
+        to: result

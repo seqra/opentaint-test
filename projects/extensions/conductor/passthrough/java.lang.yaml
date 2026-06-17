@@ -1,0 +1,112 @@
+# Pass-through approximations for java.lang String/boxing/number methods.
+#
+# Models the dropped (not-yet-approximated) java.lang methods listed in the
+# tracking unit java_lang-passthrough.yaml. Each is a simple copy from the
+# receiver/argument into the produced value (or back onto the receiver).
+#
+# OVERRIDE mode: in this build a collision with a built-in passThrough silently
+# OVERRIDES (no load error), so all 16 modeled methods are kept here.
+passThrough:
+  # Boolean.booleanValue() -> primitive of the tainted box
+  - function: java.lang.Boolean#booleanValue
+    copy:
+      - from: this
+        to: result
+
+  # Boolean.parseBoolean(s) -> boolean parsed from the tainted string
+  - function: java.lang.Boolean#parseBoolean
+    copy:
+      - from: arg(0)
+        to: result
+
+  # Boolean.valueOf(x) -> box/parse of the tainted argument
+  - function: java.lang.Boolean#valueOf
+    copy:
+      - from: arg(0)
+        to: result
+
+  # Double.valueOf(x) -> box/parse of the tainted argument
+  - function: java.lang.Double#valueOf
+    copy:
+      - from: arg(0)
+        to: result
+
+  # Enum.name() -> name string of the tainted enum constant
+  - function: java.lang.Enum#name
+    copy:
+      - from: this
+        to: result
+
+  # Integer.parseInt(s) -> int parsed from the tainted string
+  - function: java.lang.Integer#parseInt
+    copy:
+      - from: arg(0)
+        to: result
+
+  # Integer.valueOf(x) -> box/parse of the tainted argument
+  - function: java.lang.Integer#valueOf
+    copy:
+      - from: arg(0)
+        to: result
+
+  # Long.parseLong(s) -> long parsed from the tainted string
+  - function: java.lang.Long#parseLong
+    copy:
+      - from: arg(0)
+        to: result
+
+  # Long.valueOf(x) -> box/parse of the tainted argument
+  - function: java.lang.Long#valueOf
+    copy:
+      - from: arg(0)
+        to: result
+
+  # Math.max(a, b) -> one of the tainted operands
+  - function: java.lang.Math#max
+    copy:
+      - from: arg(0)
+        to: result
+      - from: arg(1)
+        to: result
+
+  # Math.min(a, b) -> one of the tainted operands
+  - function: java.lang.Math#min
+    copy:
+      - from: arg(0)
+        to: result
+      - from: arg(1)
+        to: result
+
+  # Math.pow(a, b) -> derived from the tainted operands
+  - function: java.lang.Math#pow
+    copy:
+      - from: arg(0)
+        to: result
+      - from: arg(1)
+        to: result
+
+  # Object.<init>() -> receiver constructed; preserve taint on the new object
+  - function: java.lang.Object#<init>
+    copy:
+      - from: this
+        to: result
+
+  # String.formatted(args) -> formatted string from the tainted format + args
+  - function: java.lang.String#formatted
+    copy:
+      - from: this
+        to: result
+      - from: arg(*)
+        to: result
+
+  # String.join(delimiter, elements) -> joined string of the tainted parts
+  - function: java.lang.String#join
+    copy:
+      - from: arg(*)
+        to: result
+
+  # String.valueOf(x) -> string rendering of the tainted argument
+  - function: java.lang.String#valueOf
+    copy:
+      - from: arg(0)
+        to: result

@@ -34,6 +34,21 @@ def _matches_filter(name: str, patterns: list[str]) -> bool:
     return any(p in name for p in patterns)
 
 
+def _normalise_scan_flags(raw) -> list[str]:
+    """Coerce the YAML `scan-flags` field into a clean ``list[str]``.
+
+    Accepts None / missing (→ empty list) or a list of scalars. Any other
+    shape is a configuration error and raised loudly so the workflow fails
+    fast instead of silently dropping flags.
+    """
+    if raw is None:
+        return []
+    if not isinstance(raw, list):
+        raise ValueError(
+            f"scan-flags must be a list, got {type(raw).__name__}: {raw!r}")
+    return [str(token) for token in raw]
+
+
 def _load_misses(path: str | None) -> set[tuple[str, str]]:
     if not path:
         return set()
@@ -64,6 +79,10 @@ def build_matrix(repos_path: Path, base_sha: str, new_sha: str,
                 "head": repo["head"],
                 "java_version": str(repo.get("java-version", DEFAULT_JAVA)),
                 "max_memory": str(repo.get("max-memory", DEFAULT_MEMORY)),
+                # Serialised as JSON so the GH Actions matrix can carry an
+                # arbitrarily long, space-containing list through a single
+                # string-valued field. `run_analysis.py` decodes it back.
+                "scan_flags": json.dumps(_normalise_scan_flags(repo.get("scan-flags"))),
                 "ref_kind": ref_kind,
                 "analyzer_sha": sha,
             })

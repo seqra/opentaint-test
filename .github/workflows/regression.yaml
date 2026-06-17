@@ -296,14 +296,21 @@ jobs:
           echo "key=$key" >> "$GITHUB_OUTPUT"
       - name: Run analysis
         id: ra
+        env:
+          # Forwarded via env to avoid YAML/shell-quoting pitfalls — the
+          # matrix value is a JSON-encoded list that can contain spaces,
+          # commas, or other shell-special characters.
+          SCAN_FLAGS_JSON: ${{ matrix.scan_flags }}
         run: |
           set +e
           python scripts/run_analysis.py \
-            --build-dir   build \
-            --project-dir project-root \
-            --results-dir results-bundle \
-            --max-memory  "${{ matrix.max_memory }}" \
-            --timeout     1200
+            --build-dir       build \
+            --project-dir     project-root \
+            --results-dir     results-bundle \
+            --max-memory      "${{ matrix.max_memory }}" \
+            --timeout         1200 \
+            --extensions-dir  projects/extensions \
+            --scan-flags-json "$SCAN_FLAGS_JSON"
           rc=$?
           echo "rc=$rc" >> "$GITHUB_OUTPUT"
           # Exit 0 so cache/upload steps still run; we fail the job at the end

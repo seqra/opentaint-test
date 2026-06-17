@@ -1,0 +1,51 @@
+# OpenTaint passThrough approximations — java.sql (JDBC SQL-injection carriers)
+#
+# Models the dropped java.sql methods listed in the tracking unit
+# java_sql-passthrough.yaml. These sit on SQL-injection carrier paths: tainted
+# values move into the SQL statement / connection objects that ultimately reach
+# execute().
+#
+# OVERRIDE mode: merged with built-ins at the rule level (per-method, additive).
+# A provided rule overrides a built-in only if it matches one.
+passThrough:
+  # Connection.prepareStatement(sql[, ...]) -> the SQL string carries into the
+  # produced PreparedStatement and back onto the connection.
+  - function: java.sql.Connection#prepareStatement
+    copy:
+      - from: arg(0)
+        to: result
+      - from: arg(0)
+        to: this
+
+  # Connection.createStatement([...]) -> Statement is a carrier rooted in the
+  # tainted connection.
+  - function: java.sql.Connection#createStatement
+    copy:
+      - from: this
+        to: result
+
+  # PreparedStatement.setString(parameterIndex, x) -> the bound value taints the
+  # statement (carries into the eventual execute()).
+  - function: java.sql.PreparedStatement#setString
+    copy:
+      - from: arg(1)
+        to: this
+
+  # PreparedStatement.setInt(parameterIndex, x) -> bound value taints statement.
+  - function: java.sql.PreparedStatement#setInt
+    copy:
+      - from: arg(1)
+        to: this
+
+  # PreparedStatement.setBinaryStream(parameterIndex, x[, length]) -> bound value
+  # taints statement.
+  - function: java.sql.PreparedStatement#setBinaryStream
+    copy:
+      - from: arg(1)
+        to: this
+
+  # Wrapper.unwrap(iface) -> unwrapped delegate carries the tainted wrapper.
+  - function: java.sql.Wrapper#unwrap
+    copy:
+      - from: this
+        to: result

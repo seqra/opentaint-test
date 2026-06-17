@@ -1,0 +1,22 @@
+# Pass-through approximations for Spring Data Redis SetOperations methods.
+#
+# Models the dropped (not-yet-approximated) methods listed in the tracking
+# unit org_springframework_data_redis_core-passthrough.yaml. The tainted key
+# (and membership value) supplied as arguments are carried into Redis through
+# the receiver, so taint flows arg -> receiver (this).
+#
+# OVERRIDE mode: merged with built-ins at the rule level (per-method, additive).
+passThrough:
+  # SetOperations.isMember(key, value) -> tainted key/value carried into Redis
+  - function: org.springframework.data.redis.core.SetOperations#isMember
+    copy:
+      - from: arg(0)
+        to: this
+      - from: arg(1)
+        to: this
+
+  # SetOperations.size(key) -> tainted key carried into Redis
+  - function: org.springframework.data.redis.core.SetOperations#size
+    copy:
+      - from: arg(0)
+        to: this

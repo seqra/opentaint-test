@@ -1,0 +1,115 @@
+# Pass-through approximations for java.util container/accessor methods.
+#
+# Models the dropped (not-yet-approximated) java.util methods listed in the
+# tracking unit java_util-passthrough.yaml. Each is a simple copy from the
+# receiver/argument into the produced value (or back onto the container).
+#
+# OVERRIDE mode: merged with built-ins at the rule level (per-method, additive).
+# Methods that collide with a BUILT-IN passThrough are dropped from this file
+# (see the task report) because a colliding target errors at config load.
+passThrough:
+  # Arrays.toString(array) -> string of the tainted array elements
+  - function: java.util.Arrays#toString
+    copy:
+      - from: arg(0)
+        to: result
+
+  # Collection.stream() -> stream backed by the tainted collection
+  - function: java.util.Collection#stream
+    copy:
+      - from: this
+        to: result
+
+  # Comparator.compare(a, b) -> int derived from the compared (tainted) values
+  - function: java.util.Comparator#compare
+    copy:
+      - from: arg(0)
+        to: result
+      - from: arg(1)
+        to: result
+
+  # Collections.sort(list) -> in-place reorder; receiver keeps its taint
+  - function: java.util.Collections#sort
+    copy:
+      - from: arg(0)
+        to: arg(0)
+
+  # List.sort(comparator) -> in-place reorder; receiver keeps its taint
+  - function: java.util.List#sort
+    copy:
+      - from: this
+        to: this
+
+  # ArrayList.sort(comparator) -> in-place reorder; receiver keeps its taint
+  - function: java.util.ArrayList#sort
+    copy:
+      - from: this
+        to: this
+
+  # List.remove(index) -> removed (tainted) element
+  - function: java.util.List#remove
+    copy:
+      - from: this
+        to: result
+
+  # HashSet.remove(o) -> boolean / removed membership of the tainted set
+  - function: java.util.HashSet#remove
+    copy:
+      - from: this
+        to: result
+
+  # Set.remove(o) -> boolean / removed membership of the tainted set
+  - function: java.util.Set#remove
+    copy:
+      - from: this
+        to: result
+
+  # Map.entrySet() -> entry set view backed by the tainted map
+  - function: java.util.Map#entrySet
+    copy:
+      - from: this
+        to: result
+
+  # Map.getOrDefault(key, default) -> stored value or the supplied default
+  - function: java.util.Map#getOrDefault
+    copy:
+      - from: this
+        to: result
+      - from: arg(1)
+        to: result
+
+  # PriorityQueue.add(e) -> the tainted element enters the queue
+  - function: java.util.PriorityQueue#add
+    copy:
+      - from: arg(0)
+        to: this
+
+  # PriorityQueue.poll() -> head (tainted) element of the queue
+  - function: java.util.PriorityQueue#poll
+    copy:
+      - from: this
+        to: result
+
+  # HashMap.putAll(m) -> contents of the tainted source map enter this map
+  - function: java.util.HashMap#putAll
+    copy:
+      - from: arg(0)
+        to: this
+
+  # Map.putAll(m) -> contents of the tainted source map enter this map
+  - function: java.util.Map#putAll
+    copy:
+      - from: arg(0)
+        to: this
+
+  # UUID.fromString(s) -> UUID parsed from the tainted string
+  - function: java.util.UUID#fromString
+    copy:
+      - from: arg(0)
+        to: result
+
+  # UUID.nameUUIDFromBytes(bytes) -> UUID derived from the tainted bytes
+  - function: java.util.UUID#nameUUIDFromBytes
+    copy:
+      - from: arg(0)
+        to: result

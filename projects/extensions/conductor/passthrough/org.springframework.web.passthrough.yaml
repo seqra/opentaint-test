@@ -1,0 +1,33 @@
+# Pass-through approximations for Spring web helper methods on SSRF carrier paths.
+#
+# Models the dropped (not-yet-approximated) org.springframework.web methods listed
+# in the tracking unit org_springframework_web-passthrough.yaml. Each is a simple
+# copy of taint from an argument/receiver into the produced value (or back onto the
+# builder), keeping a tainted URL/entity flowing into the outbound HTTP call and the
+# tainted response flowing back out.
+#
+# File name is org.springframework.web.passthrough.yaml to avoid colliding with the
+# existing org.springframework.yaml.
+#
+# OVERRIDE mode: merged with built-ins at the rule level (per-method, additive).
+passThrough:
+  # RestTemplate.exchange(...) carries the tainted URL/entity into the outbound
+  # HTTP call (SSRF carrier) and returns the tainted ResponseEntity. Across all
+  # overloads the request inputs are the arguments and the response is the result,
+  # so any tainted argument flows to the result.
+  - function: org.springframework.web.client.RestTemplate#exchange
+    copy:
+      - from: arg(*)
+        to: result
+
+  # ContentNegotiationConfigurer.defaultContentType(MediaType...) is a builder
+  # method: the tainted argument is stored on the configurer and the configurer is
+  # returned for chaining.
+  - function: org.springframework.web.servlet.config.annotation.ContentNegotiationConfigurer#defaultContentType
+    copy:
+      - from: arg(0)
+        to: this
+      - from: arg(0)
+        to: result
+      - from: this
+        to: result

@@ -1,0 +1,40 @@
+# Pass-through approximations for java.io stream/reader/writer methods.
+#
+# Models the dropped (not-yet-approximated) java.io methods listed in the
+# tracking unit java_io-passthrough.yaml. Each carries tainted bytes/strings
+# from the wrapped source argument onto the stream receiver (and back out on
+# read), matching the per-method semantics in that tracking file
+# (arg -> receiver / return).
+#
+# OVERRIDE mode: merged with built-ins at the rule level (per-method, additive).
+# A rule that matches a built-in simply overrides it; it does not error at load.
+passThrough:
+  # new BufferedInputStream(in) -> the wrapped (tainted) source stream feeds this
+  - function: java.io.BufferedInputStream#<init>
+    copy:
+      - from: arg(0)
+        to: this
+
+  # new FileInputStream(file/path/fd) -> bytes read from the tainted source land on this
+  - function: java.io.FileInputStream#<init>
+    copy:
+      - from: arg(0)
+        to: this
+
+  # new FileOutputStream(file/path/fd) -> the tainted target descriptor backs this stream
+  - function: java.io.FileOutputStream#<init>
+    copy:
+      - from: arg(0)
+        to: this
+
+  # PrintStream.printf(format, args...) -> formatted (tainted) output written into this stream
+  - function: java.io.PrintStream#printf
+    copy:
+      - from: arg(*)
+        to: this
+
+  # PrintStream.println(x) -> the tainted value is written into this stream
+  - function: java.io.PrintStream#println
+    copy:
+      - from: arg(0)
+        to: this

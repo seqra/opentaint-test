@@ -1,0 +1,28 @@
+# OpenTaint passThrough approximations — Apache Commons (io / codec / lang3.time)
+#
+# Simple copy propagation for tainted input flowing through commons helpers.
+# OVERRIDE mode, additive per method: a provided rule that matches a built-in
+# overrides it; it does not error at load.
+#
+# Per-method semantics from org_apache_commons-passthrough.yaml tracking unit.
+passThrough:
+  # DigestUtils.sha256Hex(data) -> hex digest string of the tainted input.
+  # static; data is byte[] | String | InputStream depending on overload.
+  - function: org.apache.commons.codec.digest.DigestUtils#sha256Hex
+    copy:
+      - from: arg(0)
+        to: result
+
+  # IOUtils.copy(input, output) -> bytes/chars read from the tainted input
+  # source are written into the output sink. static; arg(0) -> arg(1).
+  - function: org.apache.commons.io.IOUtils#copy
+    copy:
+      - from: arg(0)
+        to: arg(1)
+
+  # DateUtils.parseDate(str, ...) -> Date parsed from the tainted string.
+  # static; arg(0) is the input String. arg(0) -> result.
+  - function: org.apache.commons.lang3.time.DateUtils#parseDate
+    copy:
+      - from: arg(0)
+        to: result

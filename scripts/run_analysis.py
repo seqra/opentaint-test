@@ -14,7 +14,15 @@ Usage:
         --project-dir /path/to/cloned/project \
         --results-dir results/<project>/<ref>/ \
         --max-memory 8G \
-        [--timeout 1200]
+        [--timeout 1200] \
+        [--extensions-dir projects/extensions] \
+        [--scan-flags-json '["--rule-id", "java.taint.sql-injection"]']
+
+Extra `opentaint scan` flags may be supplied via ``--scan-flags-json``
+(a JSON-encoded list of CLI tokens). The literal substring ``{ext}`` inside
+any token is replaced with the absolute path passed via
+``--extensions-dir``, letting projects reference files shipped in this
+repository (e.g. pass-through approximations) without hard-coding paths.
 
 Exit codes:
     0  status.json was written, autobuilder (compile step) succeeded.
@@ -34,6 +42,10 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+
+# Placeholder used inside `scan-flags` entries in repos.yaml. Replaced at
+# runtime with the absolute path of the extensions directory.
+EXT_PLACEHOLDER = "{ext}"
 
 
 _LOG_FILE_RE = re.compile(r"Log file:\s*(.+\.log)")
@@ -116,8 +128,53 @@ def _run(cmd: list[str], timeout: int, log_fp) -> tuple[int, str, str, float]:
     return rc, out, err, dur
 
 
+def _expand_scan_flags(flags: list[str], extensions_dir: Path | None) -> list[str]:
+    """Substitute ``{ext}`` in every token with ``extensions_dir`` (absolute).
+
+    Raises a clear error if a token references the placeholder but no
+    extensions directory was supplied.
+    """
+    if not flags:
+        return []
+    needs_ext = any(EXT_PLACEHOLDER in tok for tok in flags)
+    if needs_ext and extensions_dir is None:
+        raise ValueError(
+            f"scan-flags contains {EXT_PLACEHOLDER!r} but no --extensions-dir "
+            "was provided")
+    ext_str = str(extensions_dir.resolve()) if extensions_dir is not None else ""
+    return [tok.replace(EXT_PLACEHOLDER, ext_str) for tok in flags]
+
+
+def _build_scan_cmd(opentaint: Path, analyzer_jar: Path, rules_dir: Path,
+                    model_dir: Path, sarif: Path, max_memory: str,
+                    scan_timeout_seconds: int,
+                    extra_flags: list[str]) -> list[str]:
+    """Assemble the ``opentaint scan`` argv.
+
+    The built-in ``--ruleset <rules_dir>`` is always passed first. Any
+    additional ``--ruleset`` entries supplied by the project (via
+    ``scan-flags`` in ``repos.yaml``) are appended verbatim through
+    ``extra_flags`` and are *merged* with the built-in pack by the analyzer
+    — ``--ruleset`` is a ``stringArray``, so repetition is additive rather
+    than overriding.
+    """
+    return [
+        str(opentaint), "scan", "--debug",
+        "--experimental",
+        "--analyzer-jar", str(analyzer_jar),
+        "--ruleset", str(rules_dir),
+        "--project-model", str(model_dir),
+        "--output", str(sarif),
+        "--timeout", f"{scan_timeout_seconds}s",
+        "--max-memory", max_memory,
+        *extra_flags,
+    ]
+
+
 def run_pipeline(build_dir: Path, project_dir: Path, results_dir: Path,
-                 max_memory: str, timeout: int) -> dict:
+                 max_memory: str, timeout: int,
+                 scan_flags: list[str] | None = None,
+                 extensions_dir: Path | None = None) -> dict:
     results_dir.mkdir(parents=True, exist_ok=True)
     opentaint = build_dir / "opentaint"
     analyzer_jar = build_dir / "opentaint-project-analyzer.jar"
@@ -127,6 +184,8 @@ def run_pipeline(build_dir: Path, project_dir: Path, results_dir: Path,
     for p in (opentaint, analyzer_jar, autobuilder_jar, rules_dir):
         if not p.exists():
             raise FileNotFoundError(f"missing build artifact: {p}")
+
+    expanded_extra_flags = _expand_scan_flags(scan_flags or [], extensions_dir)
 
     # Keep project-model OUTSIDE results_dir so it is never cached or uploaded
     # as part of the per-project result bundle (multi-GB per project otherwise).
@@ -143,16 +202,16 @@ def run_pipeline(build_dir: Path, project_dir: Path, results_dir: Path,
         "--output", str(model_dir),
         str(project_dir),
     ]
-    scan_cmd = [
-        str(opentaint), "scan", "--debug",
-        "--experimental",
-        "--analyzer-jar", str(analyzer_jar),
-        "--ruleset", str(rules_dir),
-        "--project-model", str(model_dir),
-        "--output", str(sarif),
-        "--timeout", f"{max(timeout - 120, 60)}s",
-        "--max-memory", max_memory,
-    ]
+    scan_cmd = _build_scan_cmd(
+        opentaint=opentaint,
+        analyzer_jar=analyzer_jar,
+        rules_dir=rules_dir,
+        model_dir=model_dir,
+        sarif=sarif,
+        max_memory=max_memory,
+        scan_timeout_seconds=max(timeout - 120, 60),
+        extra_flags=expanded_extra_flags,
+    )
 
     # Do NOT pre-create model_dir: `opentaint compile --output` may refuse to
     # write into an already-existing directory (or produce inconsistent state).
@@ -199,12 +258,31 @@ def main() -> int:
     p.add_argument("--results-dir", required=True, type=Path)
     p.add_argument("--max-memory", default="8G")
     p.add_argument("--timeout", type=int, default=1200)
+    p.add_argument("--extensions-dir", type=Path, default=None,
+                   help="directory whose contents are reachable via the "
+                        "{ext} placeholder in --scan-flags-json")
+    p.add_argument("--scan-flags-json", default="[]",
+                   help="JSON-encoded list of extra CLI tokens appended to "
+                        "'opentaint scan'; each token may use {ext}")
     args = p.parse_args()
 
     try:
+        scan_flags = json.loads(args.scan_flags_json)
+        if not isinstance(scan_flags, list) or not all(isinstance(t, str) for t in scan_flags):
+            raise ValueError("--scan-flags-json must decode to a list of strings")
+    except (json.JSONDecodeError, ValueError) as e:
+        print(f"run_analysis: bad --scan-flags-json: {e}", file=sys.stderr)
+        return 2
+
+    try:
         status = run_pipeline(args.build_dir, args.project_dir,
-                              args.results_dir, args.max_memory, args.timeout)
+                              args.results_dir, args.max_memory, args.timeout,
+                              scan_flags=scan_flags,
+                              extensions_dir=args.extensions_dir)
     except FileNotFoundError as e:
+        print(f"run_analysis: {e}", file=sys.stderr)
+        return 2
+    except ValueError as e:
         print(f"run_analysis: {e}", file=sys.stderr)
         return 2
 

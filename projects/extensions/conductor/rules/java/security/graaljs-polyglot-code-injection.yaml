@@ -1,0 +1,39 @@
+rules:
+  - id: graaljs-polyglot-code-injection
+    severity: ERROR
+    message: >-
+      Untrusted input flows into a GraalVM polyglot script evaluated by
+      org.graalvm.polyglot.Context.eval. An attacker who controls the script
+      text (directly, or via a Source built from it) can execute arbitrary
+      code in the embedded language runtime (JavaScript/Python), leading to
+      remote code execution.
+    metadata:
+      cwe: CWE-94
+      short-description: Code injection via GraalVM polyglot Context.eval
+      full-description: |-
+        GraalVM polyglot code injection occurs when untrusted input reaches
+        `org.graalvm.polyglot.Context.eval(...)`, either through the
+        `eval(Source)` overload (where the `Source` is built from the tainted
+        script via `Source.newBuilder(lang, script, ...)`) or the
+        `eval(String languageId, CharSequence source)` overload. The evaluated
+        text is fully attacker-controlled program code.
+      references:
+        - https://owasp.org/www-community/attacks/Code_Injection
+        - https://www.graalvm.org/sdk/javadoc/org/graalvm/polyglot/Context.html
+    languages:
+      - java
+    mode: join
+    join:
+      refs:
+        - rule: java/lib/spring/untrusted-data-source.yaml#spring-untrusted-data-source
+          as: spring-source
+        - rule: java/lib/generic/servlet-untrusted-data-source.yaml#java-servlet-untrusted-data-source
+          as: servlet-source
+        - rule: java/lib/generic/graalvm-polyglot-sinks.yaml#graalvm-polyglot-eval
+          as: sink
+      on:
+        - 'spring-source.$UNTRUSTED -> sink.$SOURCE'
+        - 'servlet-source.$UNTRUSTED -> sink.$SOURCE'
+      comment: >-
+        GraalVM polyglot code injection: untrusted input reaches
+        org.graalvm.polyglot.Context.eval (Source or String overload).

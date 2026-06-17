@@ -1,0 +1,26 @@
+# Pass-through approximations for java.util.function functional interfaces.
+#
+# Models the dropped (not-yet-approximated) functional-interface invocation
+# points listed in the tracking unit java_util_function-passthrough.yaml.
+# Each models the value->result copy at the lambda-body boundary (arg->return).
+#
+# OVERRIDE mode: merged with built-ins at the rule level (per-method, additive).
+passThrough:
+  # Consumer.accept(value) -> void; the tainted argument is handed to the
+  # consumer body / captured by the receiver.
+  - function: java.util.function.Consumer#accept
+    copy:
+      - from: arg(0)
+        to: this
+
+  # Function.apply(value) -> result derived from the tainted argument.
+  - function: java.util.function.Function#apply
+    copy:
+      - from: arg(0)
+        to: result
+
+  # Predicate.test(value) -> boolean derived from the tainted argument.
+  - function: java.util.function.Predicate#test
+    copy:
+      - from: arg(0)
+        to: result

@@ -1,0 +1,132 @@
+# OpenTaint passThrough approximations — com.google.protobuf
+#
+# Proto getters/builders on gRPC request flows. Each is a simple copy of taint:
+#   - getters/unwrap (toStringUtf8): tainted receiver message -> returned value
+#   - builder setters/merges/adds: tainted argument -> receiver (and -> result,
+#     since builders return `this`); receiver -> result
+#   - constructors: tainted argument -> the constructed object (this)
+#
+# OVERRIDE mode: merged with built-ins at the rule level (per-method, additive).
+passThrough:
+  # --- unwrap: tainted ByteString receiver -> returned String ---
+  - function: com.google.protobuf.ByteString#toStringUtf8
+    copy:
+      - from: this
+        to: result
+
+  # --- builder setters/merges/adds: tainted arg carried into the builder ---
+  - function: com.google.protobuf.AbstractMessage$Builder#newUninitializedMessageException
+    copy:
+      - from: this
+        to: result
+
+  - function: com.google.protobuf.AbstractMessageLite$Builder#addAll
+    copy:
+      - from: arg(0)
+        to: this
+      - from: arg(0)
+        to: result
+      - from: this
+        to: result
+
+  - function: com.google.protobuf.Any$Builder#mergeFrom
+    copy:
+      - from: arg(0)
+        to: this
+      - from: arg(0)
+        to: result
+      - from: this
+        to: result
+
+  - function: com.google.protobuf.GeneratedMessageV3$Builder#mergeUnknownFields
+    copy:
+      - from: arg(0)
+        to: this
+      - from: arg(0)
+        to: result
+      - from: this
+        to: result
+
+  - function: com.google.protobuf.RepeatedFieldBuilderV3#addAllMessages
+    copy:
+      - from: arg(0)
+        to: this
+      - from: arg(0)
+        to: result
+      - from: this
+        to: result
+
+  - function: com.google.protobuf.RepeatedFieldBuilderV3#addMessage
+    copy:
+      - from: arg(0)
+        to: this
+      - from: arg(0)
+        to: result
+      - from: this
+        to: result
+
+  - function: com.google.protobuf.RepeatedFieldBuilderV3#build
+    copy:
+      - from: this
+        to: result
+
+  - function: com.google.protobuf.SingleFieldBuilderV3#mergeFrom
+    copy:
+      - from: arg(0)
+        to: this
+      - from: arg(0)
+        to: result
+      - from: this
+        to: result
+
+  - function: com.google.protobuf.SingleFieldBuilderV3#setMessage
+    copy:
+      - from: arg(0)
+        to: this
+      - from: arg(0)
+        to: result
+      - from: this
+        to: result
+
+  - function: com.google.protobuf.Struct$Builder#putFields
+    copy:
+      - from: arg(1)
+        to: this
+      - from: arg(1)
+        to: result
+      - from: this
+        to: result
+
+  - function: com.google.protobuf.Value$Builder#mergeFrom
+    copy:
+      - from: arg(0)
+        to: this
+      - from: arg(0)
+        to: result
+      - from: this
+        to: result
+
+  - function: com.google.protobuf.Value$Builder#setStringValue
+    copy:
+      - from: arg(0)
+        to: this
+      - from: arg(0)
+        to: result
+      - from: this
+        to: result
+
+  # --- constructors: tainted source argument -> the constructed object ---
+  - function: com.google.protobuf.GeneratedMessageV3#<init>
+    copy:
+      - from: arg(0)
+        to: this
+
+  - function: com.google.protobuf.RepeatedFieldBuilderV3#<init>
+    copy:
+      - from: arg(0)
+        to: this
+
+  - function: com.google.protobuf.SingleFieldBuilderV3#<init>
+    copy:
+      - from: arg(0)
+        to: this

@@ -1,0 +1,29 @@
+rules:
+  - id: graalvm-polyglot-eval
+    options:
+      lib: true
+    severity: NOTE
+    message: Untrusted script/Source reaches GraalVM polyglot Context.eval
+    metadata:
+      provenance: https://www.graalvm.org/sdk/javadoc/org/graalvm/polyglot/Context.html
+    languages:
+      - java
+    mode: taint
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              # eval(Source) overload — the Source carries the tainted script
+              - patterns:
+                  - pattern: (org.graalvm.polyglot.Context $CTX).eval($SOURCE)
+                  - focus-metavariable: $SOURCE
+              # eval(String languageId, CharSequence source) overload — focus the source arg
+              - patterns:
+                  - pattern: (org.graalvm.polyglot.Context $CTX).eval($LANG, $SOURCE)
+                  - focus-metavariable: $SOURCE
+              # Source construction from a tainted script feeds the eval; treat the
+              # built Source as the tainted sink-bearing value too.
+              - patterns:
+                  - pattern-either:
+                      - pattern: org.graalvm.polyglot.Source.newBuilder($LANG, $SOURCE, ...)
+                      - pattern: org.graalvm.polyglot.Source.create($LANG, $SOURCE)
+                  - focus-metavariable: $SOURCE

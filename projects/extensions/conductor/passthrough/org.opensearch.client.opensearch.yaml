@@ -1,0 +1,69 @@
+# Pass-through approximations for OpenSearch java-client request builders.
+#
+# Models the dropped (not-yet-approximated) org.opensearch.client.opensearch
+# methods listed in org_opensearch_client_opensearch-passthrough.yaml. Each is a
+# fluent request-builder setter: the tainted argument (id / operations / index /
+# document) flows onto the receiver builder and back through the fluent return so
+# subsequent .build() carries the taint into the constructed request.
+#
+# OVERRIDE mode: merged with built-ins at the rule level (per-method, additive).
+passThrough:
+  # BulkRequest.Builder.operations(ops) -> bulk operations carry tainted docs/ids
+  - function: org.opensearch.client.opensearch.core.BulkRequest$Builder#operations
+    copy:
+      - from: arg(0)
+        to: this
+      - from: arg(0)
+        to: result
+      - from: this
+        to: result
+
+  # DeleteRequest.Builder.id(id) -> tainted document id into the request
+  - function: org.opensearch.client.opensearch.core.DeleteRequest$Builder#id
+    copy:
+      - from: arg(0)
+        to: this
+      - from: arg(0)
+        to: result
+      - from: this
+        to: result
+
+  # GetRequest.Builder.id(id) -> tainted document id into the request
+  - function: org.opensearch.client.opensearch.core.GetRequest$Builder#id
+    copy:
+      - from: arg(0)
+        to: this
+      - from: arg(0)
+        to: result
+      - from: this
+        to: result
+
+  # IndexRequest.Builder.id(id) -> tainted document id into the request
+  - function: org.opensearch.client.opensearch.core.IndexRequest$Builder#id
+    copy:
+      - from: arg(0)
+        to: this
+      - from: arg(0)
+        to: result
+      - from: this
+        to: result
+
+  # SearchRequest.Builder.index(index) -> tainted index name into the request
+  - function: org.opensearch.client.opensearch.core.SearchRequest$Builder#index
+    copy:
+      - from: arg(0)
+        to: this
+      - from: arg(0)
+        to: result
+      - from: this
+        to: result
+
+  # UpdateRequest.Builder.id(id) -> tainted document id into the request
+  - function: org.opensearch.client.opensearch.core.UpdateRequest$Builder#id
+    copy:
+      - from: arg(0)
+        to: this
+      - from: arg(0)
+        to: result
+      - from: this
+        to: result

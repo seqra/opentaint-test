@@ -1,0 +1,16 @@
+rules:
+  - id: jackson-jq
+    options:
+      lib: true
+    severity: NOTE
+    message: jackson-jq JsonQuery.compile jq expression sink
+    languages:
+      - java
+    mode: taint
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: net.thisptr.jackson.jq.JsonQuery.compile($UNTRUSTED, ...)
+              - pattern: net.thisptr.jackson.jq.JsonQuery.compile($UNTRUSTED)
+          - focus-metavariable: $UNTRUSTED
+        from: $UNTRUSTED

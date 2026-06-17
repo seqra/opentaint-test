@@ -1,0 +1,23 @@
+# Pass-through approximations for Caffeine Cache accessor methods.
+#
+# Models the dropped (not-yet-approximated) Caffeine methods listed in the
+# tracking unit com_github_benmanes_caffeine_cache-passthrough.yaml.
+#
+# The Caffeine (Loading)Cache holds tainted values: a value put into the cache
+# is handed back on a later get/getIfPresent. We model the read accessors as
+# this->result so a value stored in the cache (the receiver) flows out of the
+# read. This puts the cache on the jq-injection and (indirectly) GraalVM flows.
+#
+# OVERRIDE mode: merged with built-ins at the rule level (per-method, additive).
+passThrough:
+  # Cache.getIfPresent(key) -> the cached (tainted) value stored in this cache
+  - function: com.github.benmanes.caffeine.cache.Cache#getIfPresent
+    copy:
+      - from: this
+        to: result
+
+  # LoadingCache.get(key) -> the loaded/cached (tainted) value of this cache
+  - function: com.github.benmanes.caffeine.cache.LoadingCache#get
+    copy:
+      - from: this
+        to: result

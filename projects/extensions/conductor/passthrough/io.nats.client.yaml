@@ -1,0 +1,28 @@
+# Pass-through approximations for io.nats.client methods.
+#
+# Models the dropped (not-yet-approximated) io.nats.client methods listed in the
+# tracking unit io_nats_client-passthrough.yaml. NATS publish/connect carry a
+# tainted subject/payload/url; taint flows from the arguments onto the
+# receiver/return per the tracking semantics ("arg->receiver/return").
+#
+# OVERRIDE mode: merged with built-ins at the rule level (per-method, additive).
+passThrough:
+  # JetStream.publish(subject, body) -> tainted subject/payload published;
+  # both args carry taint onto the receiver and into the returned PublishAck.
+  - function: io.nats.client.JetStream#publish
+    copy:
+      - from: arg(0)
+        to: this
+      - from: arg(0)
+        to: result
+      - from: arg(1)
+        to: this
+      - from: arg(1)
+        to: result
+
+  # Nats.connect(url) -> Connection established to the tainted url;
+  # the url argument carries taint into the returned Connection.
+  - function: io.nats.client.Nats#connect
+    copy:
+      - from: arg(0)
+        to: result

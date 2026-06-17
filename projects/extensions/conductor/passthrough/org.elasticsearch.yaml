@@ -1,0 +1,167 @@
+# OpenTaint passThrough approximations — org.elasticsearch query/index builders.
+#
+# These methods carry tainted field names, query terms, doc bodies, and ids
+# into Elasticsearch query/index requests (injection carriers). Modeled as:
+#   - fluent setters (build*): arg -> this, arg -> result, this -> result
+#   - static query factories (QueryBuilders.*): arg(s) -> result
+#   - constructors (<init>): arg(s) -> this (the new instance is `this`)
+#
+# --passthrough-approximations is OVERRIDE mode and additive per method: a
+# provided rule that collides with a built-in simply overrides it; it does not
+# error at load. Verified to load with no rule-parsing issues.
+passThrough:
+  # BulkRequest.setRefreshPolicy(policy) -> fluent; receiver carries the value
+  - function: org.elasticsearch.action.bulk.BulkRequest#setRefreshPolicy
+    copy:
+      - from: arg(0)
+        to: this
+      - from: arg(0)
+        to: result
+      - from: this
+        to: result
+
+  # new DeleteRequest(index[, id]) -> ids/index land on the new request
+  - function: org.elasticsearch.action.delete.DeleteRequest#<init>
+    copy:
+      - from: arg(*)
+        to: this
+
+  # new GetRequest(index[, id]) -> ids/index land on the new request
+  - function: org.elasticsearch.action.get.GetRequest#<init>
+    copy:
+      - from: arg(*)
+        to: this
+
+  # IndexRequest.id(id) -> fluent; receiver carries the tainted id
+  - function: org.elasticsearch.action.index.IndexRequest#id
+    copy:
+      - from: arg(0)
+        to: this
+      - from: arg(0)
+        to: result
+      - from: this
+        to: result
+
+  # IndexRequest.source(...) -> fluent; receiver carries the tainted doc body
+  - function: org.elasticsearch.action.index.IndexRequest#source
+    copy:
+      - from: arg(*)
+        to: this
+      - from: arg(*)
+        to: result
+      - from: this
+        to: result
+
+  # new SearchRequest(indices...) -> tainted indices land on the new request
+  - function: org.elasticsearch.action.search.SearchRequest#<init>
+    copy:
+      - from: arg(*)
+        to: this
+
+  # new UpdateRequest(index, id) -> tainted index/id land on the new request
+  - function: org.elasticsearch.action.update.UpdateRequest#<init>
+    copy:
+      - from: arg(*)
+        to: this
+
+  # BoolQueryBuilder.must(query) -> fluent; nested tainted query enters the bool
+  - function: org.elasticsearch.index.query.BoolQueryBuilder#must
+    copy:
+      - from: arg(0)
+        to: this
+      - from: arg(0)
+        to: result
+      - from: this
+        to: result
+
+  # BoolQueryBuilder.should(query) -> fluent; nested tainted query enters the bool
+  - function: org.elasticsearch.index.query.BoolQueryBuilder#should
+    copy:
+      - from: arg(0)
+        to: this
+      - from: arg(0)
+        to: result
+      - from: this
+        to: result
+
+  # QueryBuilders.existsQuery(name) -> query built from the tainted field name
+  - function: org.elasticsearch.index.query.QueryBuilders#existsQuery
+    copy:
+      - from: arg(*)
+        to: result
+
+  # QueryBuilders.prefixQuery(name, prefix) -> query from tainted name/prefix
+  - function: org.elasticsearch.index.query.QueryBuilders#prefixQuery
+    copy:
+      - from: arg(*)
+        to: result
+
+  # QueryBuilders.queryStringQuery(queryString) -> query from tainted string
+  - function: org.elasticsearch.index.query.QueryBuilders#queryStringQuery
+    copy:
+      - from: arg(*)
+        to: result
+
+  # QueryBuilders.rangeQuery(name) -> query from the tainted field name
+  - function: org.elasticsearch.index.query.QueryBuilders#rangeQuery
+    copy:
+      - from: arg(*)
+        to: result
+
+  # QueryBuilders.termsQuery(name, values...) -> query from tainted name/values
+  - function: org.elasticsearch.index.query.QueryBuilders#termsQuery
+    copy:
+      - from: arg(*)
+        to: result
+
+  # RangeQueryBuilder.from(value) -> fluent; tainted bound enters the query
+  - function: org.elasticsearch.index.query.RangeQueryBuilder#from
+    copy:
+      - from: arg(0)
+        to: this
+      - from: arg(0)
+        to: result
+      - from: this
+        to: result
+
+  # RangeQueryBuilder.to(value) -> fluent; tainted bound enters the query
+  - function: org.elasticsearch.index.query.RangeQueryBuilder#to
+    copy:
+      - from: arg(0)
+        to: this
+      - from: arg(0)
+        to: result
+      - from: this
+        to: result
+
+  # SearchSourceBuilder.from(offset) -> fluent; tainted value enters the source
+  - function: org.elasticsearch.search.builder.SearchSourceBuilder#from
+    copy:
+      - from: arg(0)
+        to: this
+      - from: arg(0)
+        to: result
+      - from: this
+        to: result
+
+  # SearchSourceBuilder.size(size) -> fluent; tainted value enters the source
+  - function: org.elasticsearch.search.builder.SearchSourceBuilder#size
+    copy:
+      - from: arg(0)
+        to: this
+      - from: arg(0)
+        to: result
+      - from: this
+        to: result
+
+  # new FieldSortBuilder(field) -> tainted field name lands on the sort builder
+  - function: org.elasticsearch.search.sort.FieldSortBuilder#<init>
+    copy:
+      - from: arg(*)
+        to: this
+
+  # SortOrder.valueOf(name) -> enum parsed from the tainted string
+  - function: org.elasticsearch.search.sort.SortOrder#valueOf
+    copy:
+      - from: arg(0)
+        to: result

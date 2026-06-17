@@ -1,0 +1,30 @@
+# Pass-through approximations for com.fasterxml.jackson.databind.
+#
+# Models the dropped (not-yet-approximated) Jackson methods listed in the
+# tracking unit com_fasterxml_jackson_databind-passthrough.yaml. Each copies
+# taint from the JSON data being read into the produced value:
+#   - ObjectMapper.readValue(byte[], TypeReference): the tainted source bytes
+#     being deserialized -> the returned DTO (arg(0) -> result).
+#   - JsonNode.asBoolean(boolean) / JsonNode.asLong(): the receiver JsonNode
+#     (which holds the parsed value) -> the returned primitive (this -> result).
+#
+# OVERRIDE mode: merged with built-ins at the rule level (per-method, additive).
+passThrough:
+  # ObjectMapper.readValue(byte[], TypeReference) -> deserialized object
+  # (dropped per dropped-external-methods.yaml)
+  - function: com.fasterxml.jackson.databind.ObjectMapper#readValue
+    copy:
+      - from: arg(0)
+        to: result
+
+  # JsonNode.asBoolean(boolean defaultValue) -> primitive read from the node
+  - function: com.fasterxml.jackson.databind.JsonNode#asBoolean
+    copy:
+      - from: this
+        to: result
+
+  # JsonNode.asLong() -> primitive read from the node
+  - function: com.fasterxml.jackson.databind.JsonNode#asLong
+    copy:
+      - from: this
+        to: result

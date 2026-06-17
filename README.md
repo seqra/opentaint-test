@@ -49,6 +49,24 @@ Full diff detail is available in the `regression-diff` artifact.
 | `tests/`                          | Unit tests for pure-Python logic. Run `python -m pytest tests`. |
 | `test-system-design-plan.md`      | Design document (authoritative spec).                        |
 
+## Per-project fields (`repos.yaml`)
+
+Each entry requires `name`, `git`, and `head` (a pinned commit/tag SHA). These
+optional fields tune one project:
+
+| Field          | Default | Purpose                                                      |
+| -------------- | ------- | ------------------------------------------------------------ |
+| `java-version`        | `17`    | JDK the project is compiled against (`actions/setup-java`).  |
+| `max-memory`          | `8G`    | Analyzer scan memory ceiling.                                |
+| `compilation-timeout` | `1200`  | Wall-clock seconds for the autobuilder compile step (and, less the usual margin, the scan). Raise for large reactors that pull from slow mirrors (e.g. `ruoyi-vue-pro`, `yudao-cloud`). |
+
+The autobuilder's Maven invocation runs with download-retry/timeout system
+properties (`run_analysis.py:maven_resilient_env`) so a transient mirror hiccup
+(e.g. an HTTP 502 from a project-pinned mirror) is retried rather than failing
+the job. A project whose build is deterministically broken at its pinned `head`
+(e.g. an inconsistent dev SNAPSHOT, or a non-Java module that fails to build) is
+commented out with a `QUARANTINED` note explaining the cause.
+
 ## Caching
 
 Per-project results (SARIF + `status.json` + analyzer log) are cached in GitHub

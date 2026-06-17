@@ -305,7 +305,7 @@ jobs:
             --project-dir     project-root \
             --results-dir     results-bundle \
             --max-memory      "${{ matrix.max_memory }}" \
-            --timeout         1200 \
+            --timeout         "${{ matrix.compilation_timeout }}" \
             --extensions-dir  projects/extensions \
             --scan-flags-json "$SCAN_FLAGS_JSON"
           rc=$?

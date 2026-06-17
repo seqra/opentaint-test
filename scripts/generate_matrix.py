@@ -9,7 +9,7 @@ Output JSON shape (printed to stdout):
 
     {"include": [
         {"project": "spring-petclinic", "git": "...", "head": "...",
-         "java_version": "17", "max_memory": "8G",
+         "java_version": "17", "max_memory": "8G", "compilation_timeout": "1200",
          "ref_kind": "base", "analyzer_sha": "<sha>"},
         ...
     ]}
@@ -26,6 +26,7 @@ import yaml
 
 DEFAULT_JAVA = "17"
 DEFAULT_MEMORY = "8G"
+DEFAULT_COMPILATION_TIMEOUT = "1200"
 
 
 def _matches_filter(name: str, patterns: list[str]) -> bool:
@@ -79,6 +80,8 @@ def build_matrix(repos_path: Path, base_sha: str, new_sha: str,
                 "head": repo["head"],
                 "java_version": str(repo.get("java-version", DEFAULT_JAVA)),
                 "max_memory": str(repo.get("max-memory", DEFAULT_MEMORY)),
+                "compilation_timeout": str(
+                    repo.get("compilation-timeout", DEFAULT_COMPILATION_TIMEOUT)),
                 # Emitted as a real JSON array — not a nested JSON-encoded
                 # string — so the matrix payload contains no backslash
                 # escapes that downstream shell + Python interpolation

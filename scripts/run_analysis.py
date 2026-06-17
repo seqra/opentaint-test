@@ -83,6 +83,44 @@ BUILTIN_RULESET = "builtin"
 RULESET_FLAG = "--ruleset"
 
 
+# Extra JVM system properties that make the autobuilder's Maven invocation
+# resilient to the flaky public mirrors several benchmark projects pin in their
+# own POM (e.g. jpress routes "central" through maven.aliyun.com, which returned
+# HTTP 502 mid-run; huaweicloud is reachable but slow). We force the wagon
+# transport — whose retry knobs are well-supported across Maven versions — and
+# also set the maven-resolver ("aether") equivalents so retries apply whichever
+# transport a given project's Maven (or its bundled wrapper) defaults to. These
+# reach Maven via MAVEN_OPTS, which every mvn/mvnw launcher forwards to the JVM
+# as -D system properties. The autobuilder forwards the inherited environment to
+# its Maven subprocess (it is how the per-project JAVA_HOME reaches mvn); if a
+# future autobuilder stops doing so, this degrades to a harmless no-op.
+_MAVEN_RESILIENCE_PROPS = [
+    "-Dmaven.resolver.transport=wagon",
+    "-Dmaven.wagon.http.retryHandler.count=5",
+    "-Dmaven.wagon.http.retryHandler.requestSentEnabled=true",
+    "-Dmaven.wagon.http.retryHandler.class=standard",
+    "-Dmaven.wagon.httpconnectionManager.ttlSeconds=120",
+    "-Dmaven.wagon.rto=120000",
+    "-Daether.connector.http.retryHandler.count=5",
+    "-Daether.connector.connectTimeout=120000",
+    "-Daether.connector.requestTimeout=120000",
+]
+
+
+def maven_resilient_env() -> dict[str, str]:
+    """Return a copy of the current environment with ``MAVEN_OPTS`` augmented by
+    the download-resilience system properties in ``_MAVEN_RESILIENCE_PROPS``.
+
+    Any caller-supplied ``MAVEN_OPTS`` is preserved and our flags are appended,
+    so an operator can still tune memory etc. via the environment.
+    """
+    env = os.environ.copy()
+    existing = env.get("MAVEN_OPTS", "").strip()
+    extra = " ".join(_MAVEN_RESILIENCE_PROPS)
+    env["MAVEN_OPTS"] = f"{existing} {extra}".strip()
+    return env
+
+
 _LOG_FILE_RE = re.compile(r"Log file:\s*(.+\.log)")
 # Analyzer prints a periodic sample like:
 #   ... Memory usage: 21792087928/30064771072 (72,48%)
@@ -145,12 +183,14 @@ def _copy_analyzer_log(stdout: str, dest: Path) -> Path | None:
         return None
 
 
-def _run(cmd: list[str], timeout: int, log_fp) -> tuple[int, str, str, float]:
+def _run(cmd: list[str], timeout: int, log_fp,
+         env: dict[str, str] | None = None) -> tuple[int, str, str, float]:
     log_fp.write(f"\n=== CMD === {' '.join(cmd)}\n")
     log_fp.flush()
     start = time.time()
     try:
-        r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout,
+                           env=env)
         rc, out, err = r.returncode, r.stdout, r.stderr
     except subprocess.TimeoutExpired as exc:
         rc = -1
@@ -321,7 +361,11 @@ def run_pipeline(build_dir: Path, project_dir: Path, results_dir: Path,
                     "peak_memory_bytes": None}
     try:
         with run_log.open("w") as log_fp:
-            rc, out, err, _ = _run(compile_cmd, timeout, log_fp)
+            # Only the compile step shells out to the project's build tool
+            # (Maven), so the download-resilience env is scoped to it; the scan
+            # step is pure opentaint and inherits the default environment.
+            rc, out, err, _ = _run(compile_cmd, timeout, log_fp,
+                                    env=maven_resilient_env())
             if rc != 0:
                 status["status"] = "error"
                 status["autobuilder_failed"] = True

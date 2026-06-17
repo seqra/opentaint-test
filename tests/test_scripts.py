@@ -6,6 +6,7 @@ Run with: python -m pytest new-test/tests -v
 from __future__ import annotations
 
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -518,3 +519,63 @@ def test_render_markdown_no_data_one_side():
     ])
     assert "110s (+10s)" in md
     assert "<no data: base>" in md
+
+
+# ── run_analysis: Maven download resilience ─────────────────────────────────
+
+def test_maven_resilient_env_injects_retry_props(monkeypatch):
+    monkeypatch.delenv("MAVEN_OPTS", raising=False)
+    env = run_analysis.maven_resilient_env()
+    opts = env["MAVEN_OPTS"]
+    # Forces a transport whose retry knobs are honoured, and asks for retries.
+    assert "-Dmaven.resolver.transport=wagon" in opts
+    assert "-Dmaven.wagon.http.retryHandler.count=5" in opts
+    # Resolver-native equivalent is present too, for Maven versions that ignore
+    # the wagon override.
+    assert "-Daether.connector.http.retryHandler.count=5" in opts
+
+
+def test_maven_resilient_env_preserves_existing_opts(monkeypatch):
+    monkeypatch.setenv("MAVEN_OPTS", "-Xmx2g")
+    opts = run_analysis.maven_resilient_env()["MAVEN_OPTS"]
+    assert opts.startswith("-Xmx2g ")
+    assert "-Dmaven.wagon.http.retryHandler.count=5" in opts
+
+
+def test_maven_resilient_env_is_a_copy(monkeypatch):
+    monkeypatch.delenv("MAVEN_OPTS", raising=False)
+    run_analysis.maven_resilient_env()
+    # The process environment must not be mutated as a side effect.
+    assert os.environ.get("MAVEN_OPTS") is None
+
+
+# ── generate_matrix: per-project timeout ────────────────────────────────────
+
+def _write_repos(tmp_path, body: str) -> Path:
+    p = tmp_path / "repos.yaml"
+    p.write_text(body)
+    return p
+
+
+def test_matrix_compilation_timeout_default(tmp_path):
+    repos = _write_repos(tmp_path, """
+repositories:
+  - name: demo
+    git: https://example.com/demo.git
+    head: abc
+""")
+    m = generate_matrix.build_matrix(repos, "base", "new", [], None)
+    assert all(c["compilation_timeout"] == generate_matrix.DEFAULT_COMPILATION_TIMEOUT
+               for c in m["include"])
+
+
+def test_matrix_compilation_timeout_override(tmp_path):
+    repos = _write_repos(tmp_path, """
+repositories:
+  - name: slowpoke
+    git: https://example.com/slowpoke.git
+    head: abc
+    compilation-timeout: 2700
+""")
+    m = generate_matrix.build_matrix(repos, "base", "new", [], None)
+    assert {c["compilation_timeout"] for c in m["include"]} == {"2700"}

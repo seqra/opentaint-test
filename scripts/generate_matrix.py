@@ -79,10 +79,12 @@ def build_matrix(repos_path: Path, base_sha: str, new_sha: str,
                 "head": repo["head"],
                 "java_version": str(repo.get("java-version", DEFAULT_JAVA)),
                 "max_memory": str(repo.get("max-memory", DEFAULT_MEMORY)),
-                # Serialised as JSON so the GH Actions matrix can carry an
-                # arbitrarily long, space-containing list through a single
-                # string-valued field. `run_analysis.py` decodes it back.
-                "scan_flags": json.dumps(_normalise_scan_flags(repo.get("scan-flags"))),
+                # Emitted as a real JSON array — not a nested JSON-encoded
+                # string — so the matrix payload contains no backslash
+                # escapes that downstream shell + Python interpolation
+                # would otherwise mangle. The workflow re-serialises with
+                # ``toJson(matrix.scan_flags)`` at the point of use.
+                "scan_flags": _normalise_scan_flags(repo.get("scan-flags")),
                 "ref_kind": ref_kind,
                 "analyzer_sha": sha,
             })

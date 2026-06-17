@@ -243,7 +243,9 @@ def test_matrix_scan_flags_default_empty(tmp_path):
         "    head: deadbeef\n"
     ))
     m = generate_matrix.build_matrix(repos, "AAA", "BBB", [], None)
-    assert [e["scan_flags"] for e in m["include"]] == ["[]", "[]"]
+    # Real JSON array — not a nested JSON-encoded string — so the matrix
+    # payload survives shell + Python interpolation in the workflow.
+    assert [e["scan_flags"] for e in m["include"]] == [[], []]
 
 
 def test_matrix_scan_flags_round_trip(tmp_path):
@@ -260,10 +262,32 @@ def test_matrix_scan_flags_round_trip(tmp_path):
     ))
     m = generate_matrix.build_matrix(repos, "AAA", "AAA", [], None)
     assert len(m["include"]) == 1
-    assert json.loads(m["include"][0]["scan_flags"]) == [
+    assert m["include"][0]["scan_flags"] == [
         "--rule-id", "java.taint.sql-injection",
         "--passthrough-approximations", "{ext}/demo/pt.yaml",
     ]
+
+
+def test_matrix_output_has_no_escaped_quotes(tmp_path):
+    """Regression: the whole matrix JSON, as printed by main(), must not
+    contain ``\\"`` sequences — those break
+    ``python -c '... json.loads('''$matrix''') ...'`` in the workflow,
+    where Python's source lexer would resolve ``\\"`` to ``"`` before
+    JSON parsing."""
+    repos = _write_repos(tmp_path, (
+        "repositories:\n"
+        "  - name: demo\n"
+        "    git: https://example.com/demo.git\n"
+        "    head: deadbeef\n"
+        "    scan-flags:\n"
+        "      - --ruleset\n"
+        "      - \"{ext}/demo/rules.yaml\"\n"
+    ))
+    m = generate_matrix.build_matrix(repos, "AAA", "AAA", [], None)
+    serialised = json.dumps(m)
+    assert "\\\"" not in serialised, (
+        f"matrix JSON contains escaped quotes that will break shell+python "
+        f"interpolation: {serialised}")
 
 
 def test_matrix_scan_flags_rejects_non_list(tmp_path):

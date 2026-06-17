@@ -253,7 +253,7 @@ jobs:
             --filter   "${{ inputs.projects_filter }}" \
             --misses-only misses.json)
           echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
-          has=$(python -c "import json;print('true' if json.loads('''$matrix''')['include'] else 'false')")
+          has=$(printf '%s' "$matrix" | python -c "import json, sys; print('true' if json.load(sys.stdin)['include'] else 'false')")
           echo "has_cells=$has" >> "$GITHUB_OUTPUT"
 
   analyze:
@@ -297,10 +297,7 @@ jobs:
       - name: Run analysis
         id: ra
         env:
-          # Forwarded via env to avoid YAML/shell-quoting pitfalls — the
-          # matrix value is a JSON-encoded list that can contain spaces,
-          # commas, or other shell-special characters.
-          SCAN_FLAGS_JSON: ${{ matrix.scan_flags }}
+          SCAN_FLAGS_JSON: ${{ toJson(matrix.scan_flags) }}
         run: |
           set +e
           python scripts/run_analysis.py \

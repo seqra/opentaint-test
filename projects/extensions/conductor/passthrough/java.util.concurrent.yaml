@@ -1,0 +1,75 @@
+# OpenTaint passThrough approximations — java.util.concurrent
+#
+# Models the dropped (not-yet-approximated) java.util.concurrent methods listed
+# in the tracking unit java_util_concurrent-passthrough.yaml. Concurrent
+# containers, futures, and executor factories: taint flows from the
+# receiver/argument into the produced value (or back onto the container).
+#
+# This unit matters: Future.get and the ConcurrentHashMap accessors sit on the
+# ScriptEvaluator RCE flow — a tainted value placed into a concurrent map /
+# computed in a future must carry its taint back out on read.
+#
+# OVERRIDE mode: merged with built-ins at the rule level (per-method, additive).
+# A provided rule that collides with a BUILT-IN passThrough silently overrides
+# it (no load error); all targets are kept unless the config fails to load.
+passThrough:
+  # ConcurrentHashMap.containsKey(key) -> boolean derived from the tainted map
+  - function: java.util.concurrent.ConcurrentHashMap#containsKey
+    copy:
+      - from: this
+        to: result
+
+  # ConcurrentHashMap.remove(key) -> the removed (tainted) value
+  - function: java.util.concurrent.ConcurrentHashMap#remove
+    copy:
+      - from: this
+        to: result
+
+  # ConcurrentHashMap.values() -> values view backed by the tainted map
+  - function: java.util.concurrent.ConcurrentHashMap#values
+    copy:
+      - from: this
+        to: result
+
+  # ConcurrentSkipListSet.remove(o) -> boolean membership of the tainted set
+  - function: java.util.concurrent.ConcurrentSkipListSet#remove
+    copy:
+      - from: this
+        to: result
+
+  # Future.get() -> the computed (tainted) value carried out of the future
+  - function: java.util.concurrent.Future#get
+    copy:
+      - from: this
+        to: result
+
+  # Executors.newFixedThreadPool(...) -> executor; any tainted arg (e.g. the
+  # ThreadFactory) flows into the produced executor
+  - function: java.util.concurrent.Executors#newFixedThreadPool
+    copy:
+      - from: arg(*)
+        to: result
+
+  # Executors.newScheduledThreadPool(...) -> executor; tainted args flow out
+  - function: java.util.concurrent.Executors#newScheduledThreadPool
+    copy:
+      - from: arg(*)
+        to: result
+
+  # Executors.newSingleThreadScheduledExecutor(...) -> executor; tainted args flow out
+  - function: java.util.concurrent.Executors#newSingleThreadScheduledExecutor
+    copy:
+      - from: arg(*)
+        to: result
+
+  # new ScheduledThreadPoolExecutor(...) -> executor; tainted args flow onto it
+  - function: java.util.concurrent.ScheduledThreadPoolExecutor#<init>
+    copy:
+      - from: arg(*)
+        to: this
+
+  # new ThreadPoolExecutor(...) -> executor; tainted args (queue, factory) flow onto it
+  - function: java.util.concurrent.ThreadPoolExecutor#<init>
+    copy:
+      - from: arg(*)
+        to: this

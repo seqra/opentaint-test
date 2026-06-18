@@ -1,0 +1,34 @@
+# OpenTaint passThrough approximations — org.springframework (misc helpers)
+#
+# Spring helper methods on HTTP / scheduling / bean-copy flows. Each is a simple
+# copy of taint from the tainted input to where the value flows out:
+#   - BeanUtils.copyProperties: tainted source object -> target object
+#   - HttpMethod.valueOf / MediaType.valueOf: tainted String -> parsed value
+#   - CronExpression.parse: tainted cron String -> parsed CronExpression
+#
+# OVERRIDE mode: merged with built-ins at the rule level (per-method, additive).
+passThrough:
+  # BeanUtils.copyProperties(source, target): copies source's properties into target.
+  # Tainted source object carries taint into the target object (arg(1)).
+  - function: org.springframework.beans.BeanUtils#copyProperties
+    copy:
+      - from: arg(0)
+        to: arg(1)
+
+  # HttpMethod.valueOf(String): tainted method string -> returned HttpMethod.
+  - function: org.springframework.http.HttpMethod#valueOf
+    copy:
+      - from: arg(0)
+        to: result
+
+  # MediaType.valueOf(String): tainted media-type string -> returned MediaType.
+  - function: org.springframework.http.MediaType#valueOf
+    copy:
+      - from: arg(0)
+        to: result
+
+  # CronExpression.parse(String): tainted cron expression -> returned CronExpression.
+  - function: org.springframework.scheduling.support.CronExpression#parse
+    copy:
+      - from: arg(0)
+        to: result

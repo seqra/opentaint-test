@@ -1,0 +1,263 @@
+# OpenTaint passThrough approximations — redis.clients.jedis
+#
+# Models the dropped Jedis read/write operations from the tracking unit
+# redis_clients_jedis-passthrough.yaml.
+#
+# Semantics (per signatures in jedis-6.0.0 / 3.6.0):
+#   Writes  (set/hset/sadd/rpush/zadd): tainted key/value args flow INTO the
+#           store (the receiver). Modeled arg(*) -> this. These ops return a
+#           status String ("OK") or a long count, never the written value, so
+#           no copy to result.
+#   Reads   (get/hget/lrange/zrange/zrangeByScore): return the tainted value
+#           held by the store. Modeled this -> result.
+#   Scans   (hscan/sscan): return a ScanResult backed by the store. this ->
+#           result, and the ScanResult ctor carries its result-list arg out.
+#   Mutators(del/expire/hdel/ltrim/srem/zrem/zremrangeByScore): tainted key/
+#           member args flow into the op against the receiver. arg(*) -> this.
+#
+# Function matchers are name-based (cover all overloads). copy: arg(*) covers
+# the value arg regardless of its position across overloads.
+#
+# OVERRIDE mode, additive per method: a rule that collides with a built-in
+# simply overrides it; it does not error at load.
+passThrough:
+  # ---------------- Jedis ----------------
+  - function: redis.clients.jedis.Jedis#del
+    copy:
+      - from: arg(*)
+        to: this
+  - function: redis.clients.jedis.Jedis#expire
+    copy:
+      - from: arg(*)
+        to: this
+  - function: redis.clients.jedis.Jedis#hdel
+    copy:
+      - from: arg(*)
+        to: this
+  - function: redis.clients.jedis.Jedis#hget
+    copy:
+      - from: this
+        to: result
+  - function: redis.clients.jedis.Jedis#hscan
+    copy:
+      - from: this
+        to: result
+  - function: redis.clients.jedis.Jedis#hset
+    copy:
+      - from: arg(*)
+        to: this
+  - function: redis.clients.jedis.Jedis#lrange
+    copy:
+      - from: this
+        to: result
+  - function: redis.clients.jedis.Jedis#ltrim
+    copy:
+      - from: arg(*)
+        to: this
+  - function: redis.clients.jedis.Jedis#rpush
+    copy:
+      - from: arg(*)
+        to: this
+  - function: redis.clients.jedis.Jedis#sadd
+    copy:
+      - from: arg(*)
+        to: this
+  - function: redis.clients.jedis.Jedis#set
+    copy:
+      - from: arg(*)
+        to: this
+  - function: redis.clients.jedis.Jedis#srem
+    copy:
+      - from: arg(*)
+        to: this
+  - function: redis.clients.jedis.Jedis#sscan
+    copy:
+      - from: this
+        to: result
+  - function: redis.clients.jedis.Jedis#zadd
+    copy:
+      - from: arg(*)
+        to: this
+  - function: redis.clients.jedis.Jedis#zrange
+    copy:
+      - from: this
+        to: result
+  - function: redis.clients.jedis.Jedis#zrangeByScore
+    copy:
+      - from: this
+        to: result
+  - function: redis.clients.jedis.Jedis#zrem
+    copy:
+      - from: arg(*)
+        to: this
+  - function: redis.clients.jedis.Jedis#zremrangeByScore
+    copy:
+      - from: arg(*)
+        to: this
+
+  # ---------------- JedisCluster ----------------
+  - function: redis.clients.jedis.JedisCluster#del
+    copy:
+      - from: arg(*)
+        to: this
+  - function: redis.clients.jedis.JedisCluster#expire
+    copy:
+      - from: arg(*)
+        to: this
+  - function: redis.clients.jedis.JedisCluster#get
+    copy:
+      - from: this
+        to: result
+  - function: redis.clients.jedis.JedisCluster#hdel
+    copy:
+      - from: arg(*)
+        to: this
+  - function: redis.clients.jedis.JedisCluster#hget
+    copy:
+      - from: this
+        to: result
+  - function: redis.clients.jedis.JedisCluster#hscan
+    copy:
+      - from: this
+        to: result
+  - function: redis.clients.jedis.JedisCluster#hset
+    copy:
+      - from: arg(*)
+        to: this
+  - function: redis.clients.jedis.JedisCluster#lrange
+    copy:
+      - from: this
+        to: result
+  - function: redis.clients.jedis.JedisCluster#ltrim
+    copy:
+      - from: arg(*)
+        to: this
+  - function: redis.clients.jedis.JedisCluster#rpush
+    copy:
+      - from: arg(*)
+        to: this
+  - function: redis.clients.jedis.JedisCluster#sadd
+    copy:
+      - from: arg(*)
+        to: this
+  - function: redis.clients.jedis.JedisCluster#set
+    copy:
+      - from: arg(*)
+        to: this
+  - function: redis.clients.jedis.JedisCluster#srem
+    copy:
+      - from: arg(*)
+        to: this
+  - function: redis.clients.jedis.JedisCluster#sscan
+    copy:
+      - from: this
+        to: result
+  - function: redis.clients.jedis.JedisCluster#zadd
+    copy:
+      - from: arg(*)
+        to: this
+  - function: redis.clients.jedis.JedisCluster#zrange
+    copy:
+      - from: this
+        to: result
+  - function: redis.clients.jedis.JedisCluster#zrangeByScore
+    copy:
+      - from: this
+        to: result
+  - function: redis.clients.jedis.JedisCluster#zrem
+    copy:
+      - from: arg(*)
+        to: this
+  - function: redis.clients.jedis.JedisCluster#zremrangeByScore
+    copy:
+      - from: arg(*)
+        to: this
+
+  # ---------------- UnifiedJedis ----------------
+  - function: redis.clients.jedis.UnifiedJedis#del
+    copy:
+      - from: arg(*)
+        to: this
+  - function: redis.clients.jedis.UnifiedJedis#expire
+    copy:
+      - from: arg(*)
+        to: this
+  - function: redis.clients.jedis.UnifiedJedis#get
+    copy:
+      - from: this
+        to: result
+  - function: redis.clients.jedis.UnifiedJedis#hdel
+    copy:
+      - from: arg(*)
+        to: this
+  - function: redis.clients.jedis.UnifiedJedis#hget
+    copy:
+      - from: this
+        to: result
+  - function: redis.clients.jedis.UnifiedJedis#hscan
+    copy:
+      - from: this
+        to: result
+  - function: redis.clients.jedis.UnifiedJedis#hset
+    copy:
+      - from: arg(*)
+        to: this
+  - function: redis.clients.jedis.UnifiedJedis#lrange
+    copy:
+      - from: this
+        to: result
+  - function: redis.clients.jedis.UnifiedJedis#ltrim
+    copy:
+      - from: arg(*)
+        to: this
+  - function: redis.clients.jedis.UnifiedJedis#rpush
+    copy:
+      - from: arg(*)
+        to: this
+  - function: redis.clients.jedis.UnifiedJedis#sadd
+    copy:
+      - from: arg(*)
+        to: this
+  - function: redis.clients.jedis.UnifiedJedis#set
+    copy:
+      - from: arg(*)
+        to: this
+  - function: redis.clients.jedis.UnifiedJedis#srem
+    copy:
+      - from: arg(*)
+        to: this
+  - function: redis.clients.jedis.UnifiedJedis#sscan
+    copy:
+      - from: this
+        to: result
+  - function: redis.clients.jedis.UnifiedJedis#zadd
+    copy:
+      - from: arg(*)
+        to: this
+  - function: redis.clients.jedis.UnifiedJedis#zrange
+    copy:
+      - from: this
+        to: result
+  - function: redis.clients.jedis.UnifiedJedis#zrangeByScore
+    copy:
+      - from: this
+        to: result
+  - function: redis.clients.jedis.UnifiedJedis#zrem
+    copy:
+      - from: arg(*)
+        to: this
+  - function: redis.clients.jedis.UnifiedJedis#zremrangeByScore
+    copy:
+      - from: arg(*)
+        to: this
+
+  # ---------------- ScanResult ----------------
+  # ScanResult(cursor, List<T> result): the tainted result list (arg(1)) is
+  # held by the ScanResult and handed back via getResult(). Carry it onto the
+  # constructed object and the produced value.
+  - function: redis.clients.jedis.resps.ScanResult#<init>
+    copy:
+      - from: arg(1)
+        to: this
+      - from: arg(1)
+        to: result

@@ -14,7 +14,34 @@ Usage:
         --project-dir /path/to/cloned/project \
         --results-dir results/<project>/<ref>/ \
         --max-memory 8G \
-        [--timeout 1200]
+        [--timeout 1200] \
+        [--extensions-dir projects/extensions] \
+        [--scan-flags-json '["--rule-id", "java.taint.sql-injection"]']
+
+Extra `opentaint scan` flags may be supplied via ``--scan-flags-json``
+(a JSON-encoded list of CLI tokens). Two placeholders are expanded inside
+every token before invoking opentaint:
+
+* ``{ext}``    → absolute path of ``--extensions-dir``  (project files
+  shipped in this repo, e.g. ``{ext}/conductor/passthrough``).
+* ``{rules}``  → absolute path of the opentaint source-tree rule pack
+  staged at ``<build-dir>/rules``  (use this only when you want those
+  YAMLs layered on top of, or instead of, the analyzer's ``builtin`` pack).
+
+Ruleset handling. In the test bench ``builtin`` is treated as an alias for
+the rule pack staged at ``<build-dir>/rules`` (a copy of
+``opentaint/rules/ruleset`` made by ``build_opentaint.sh``). The CLI's
+native ``--ruleset builtin`` sentinel downloads the pack from a GitHub
+release tagged ``rules/<version>`` — unavailable for in-development
+opentaint SHAs (and 404s anyway due to a CLI URL bug). The staged copy IS
+the built-in pack for the revision under test, so we silently rewrite the
+sentinel to its absolute path. Two rules result:
+
+* If ``scan-flags`` contains no ``--ruleset``, the runner inserts
+  ``--ruleset <build-dir>/rules`` as the default.
+* Each ``--ruleset builtin`` pair in ``scan-flags`` is rewritten to
+  ``--ruleset <build-dir>/rules`` before invoking opentaint. All other
+  ``--ruleset`` values are passed through verbatim.
 
 Exit codes:
     0  status.json was written, autobuilder (compile step) succeeded.
@@ -34,6 +61,64 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+
+# Placeholders used inside `scan-flags` entries in repos.yaml. Replaced at
+# runtime with the absolute paths of, respectively, the per-project
+# extensions directory and the source-tree rule pack staged into the build
+# artifact at <build-dir>/rules.
+EXT_PLACEHOLDER = "{ext}"
+RULES_PLACEHOLDER = "{rules}"
+
+# Sentinel value accepted by `opentaint scan --ruleset`. The CLI resolves it
+# by downloading a GitHub release tagged `rules/<version>` — not viable for
+# in-development SHAs analysed by this bench (and 404s due to a CLI URL
+# bug). The runner intercepts the sentinel and points the analyzer at the
+# staged source-tree pack at `<build-dir>/rules` instead. See
+# `_resolve_builtin_ruleset`.
+BUILTIN_RULESET = "builtin"
+
+# Token (as it appears in argv) that introduces a ruleset value. Used to
+# decide whether the project already supplied at least one --ruleset so we
+# don't override their choice.
+RULESET_FLAG = "--ruleset"
+
+
+# Extra JVM system properties that make the autobuilder's Maven invocation
+# resilient to the flaky public mirrors several benchmark projects pin in their
+# own POM (e.g. jpress routes "central" through maven.aliyun.com, which returned
+# HTTP 502 mid-run; huaweicloud is reachable but slow). We force the wagon
+# transport — whose retry knobs are well-supported across Maven versions — and
+# also set the maven-resolver ("aether") equivalents so retries apply whichever
+# transport a given project's Maven (or its bundled wrapper) defaults to. These
+# reach Maven via MAVEN_OPTS, which every mvn/mvnw launcher forwards to the JVM
+# as -D system properties. The autobuilder forwards the inherited environment to
+# its Maven subprocess (it is how the per-project JAVA_HOME reaches mvn); if a
+# future autobuilder stops doing so, this degrades to a harmless no-op.
+_MAVEN_RESILIENCE_PROPS = [
+    "-Dmaven.resolver.transport=wagon",
+    "-Dmaven.wagon.http.retryHandler.count=5",
+    "-Dmaven.wagon.http.retryHandler.requestSentEnabled=true",
+    "-Dmaven.wagon.http.retryHandler.class=standard",
+    "-Dmaven.wagon.httpconnectionManager.ttlSeconds=120",
+    "-Dmaven.wagon.rto=120000",
+    "-Daether.connector.http.retryHandler.count=5",
+    "-Daether.connector.connectTimeout=120000",
+    "-Daether.connector.requestTimeout=120000",
+]
+
+
+def maven_resilient_env() -> dict[str, str]:
+    """Return a copy of the current environment with ``MAVEN_OPTS`` augmented by
+    the download-resilience system properties in ``_MAVEN_RESILIENCE_PROPS``.
+
+    Any caller-supplied ``MAVEN_OPTS`` is preserved and our flags are appended,
+    so an operator can still tune memory etc. via the environment.
+    """
+    env = os.environ.copy()
+    existing = env.get("MAVEN_OPTS", "").strip()
+    extra = " ".join(_MAVEN_RESILIENCE_PROPS)
+    env["MAVEN_OPTS"] = f"{existing} {extra}".strip()
+    return env
 
 
 _LOG_FILE_RE = re.compile(r"Log file:\s*(.+\.log)")
@@ -98,12 +183,14 @@ def _copy_analyzer_log(stdout: str, dest: Path) -> Path | None:
         return None
 
 
-def _run(cmd: list[str], timeout: int, log_fp) -> tuple[int, str, str, float]:
+def _run(cmd: list[str], timeout: int, log_fp,
+         env: dict[str, str] | None = None) -> tuple[int, str, str, float]:
     log_fp.write(f"\n=== CMD === {' '.join(cmd)}\n")
     log_fp.flush()
     start = time.time()
     try:
-        r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout,
+                           env=env)
         rc, out, err = r.returncode, r.stdout, r.stderr
     except subprocess.TimeoutExpired as exc:
         rc = -1
@@ -116,8 +203,118 @@ def _run(cmd: list[str], timeout: int, log_fp) -> tuple[int, str, str, float]:
     return rc, out, err, dur
 
 
+def _expand_scan_flags(flags: list[str],
+                       extensions_dir: Path | None,
+                       rules_dir: Path | None = None) -> list[str]:
+    """Substitute ``{ext}`` and ``{rules}`` placeholders in every token.
+
+    * ``{ext}``    → absolute path of ``extensions_dir``.
+    * ``{rules}``  → absolute path of ``rules_dir`` (the staged opentaint
+      source-tree rule pack at ``<build-dir>/rules``).
+
+    Raises a clear error if a token references a placeholder whose
+    backing path was not supplied.
+    """
+    if not flags:
+        return []
+    needs_ext = any(EXT_PLACEHOLDER in tok for tok in flags)
+    needs_rules = any(RULES_PLACEHOLDER in tok for tok in flags)
+    if needs_ext and extensions_dir is None:
+        raise ValueError(
+            f"scan-flags contains {EXT_PLACEHOLDER!r} but no --extensions-dir "
+            "was provided")
+    if needs_rules and rules_dir is None:
+        raise ValueError(
+            f"scan-flags contains {RULES_PLACEHOLDER!r} but no rules "
+            "directory is available")
+    ext_str = str(extensions_dir.resolve()) if extensions_dir is not None else ""
+    rules_str = str(rules_dir.resolve()) if rules_dir is not None else ""
+    return [
+        tok.replace(EXT_PLACEHOLDER, ext_str).replace(RULES_PLACEHOLDER, rules_str)
+        for tok in flags
+    ]
+
+
+def _resolve_builtin_ruleset(flags: list[str], rules_dir: Path) -> list[str]:
+    """Rewrite every ``--ruleset builtin`` pair to ``--ruleset <rules_dir>``.
+
+    The opentaint CLI resolves the ``builtin`` sentinel by fetching the rule
+    pack from a GitHub release tagged ``rules/<version>``. That download is
+    unusable in this bench because:
+
+    * we test in-development opentaint SHAs whose rule packs are not (yet)
+      published as releases;
+    * the CLI's URL template double-includes the org, producing a 404
+      (``api.github.com/repos/seqra/seqra/opentaint/…``).
+
+    The staged ``<rules_dir>`` directory is the same source-tree pack that
+    would have been packaged into the release, copied at build time by
+    ``build_opentaint.sh``. From the analyzer's perspective the rules are
+    identical; only the CLI's coverage report labels the pack as a
+    ``User ruleset`` instead of ``Bundled`` — a cosmetic mismatch we accept
+    in exchange for working offline and against unreleased SHAs.
+
+    Non-``builtin`` ``--ruleset`` values and unrelated tokens are returned
+    unchanged.
+    """
+    if not flags:
+        return []
+    rules_path = str(rules_dir.resolve())
+    out: list[str] = []
+    i = 0
+    n = len(flags)
+    while i < n:
+        tok = flags[i]
+        out.append(tok)
+        if tok == RULESET_FLAG and i + 1 < n:
+            value = flags[i + 1]
+            out.append(rules_path if value == BUILTIN_RULESET else value)
+            i += 2
+        else:
+            i += 1
+    return out
+
+
+def _build_scan_cmd(opentaint: Path, analyzer_jar: Path, rules_dir: Path,
+                    model_dir: Path, sarif: Path, max_memory: str,
+                    scan_timeout_seconds: int,
+                    extra_flags: list[str]) -> list[str]:
+    """Assemble the ``opentaint scan`` argv.
+
+    Ruleset policy:
+
+    * ``builtin`` everywhere in ``extra_flags`` is first rewritten to the
+      absolute path of ``rules_dir`` (see ``_resolve_builtin_ruleset``).
+    * If after that rewrite ``extra_flags`` still contains at least one
+      ``--ruleset`` token, it is passed through verbatim — the project is
+      in full control and may layer the staged pack, custom YAML files
+      and directories in any order.
+    * Otherwise the runner inserts ``--ruleset <rules_dir>`` as the
+      implicit default, matching the spirit of the CLI's
+      ``default [builtin]``.
+    """
+    resolved_flags = _resolve_builtin_ruleset(extra_flags, rules_dir)
+    if any(tok == RULESET_FLAG for tok in resolved_flags):
+        ruleset_args: list[str] = []
+    else:
+        ruleset_args = [RULESET_FLAG, str(rules_dir.resolve())]
+    return [
+        str(opentaint), "scan", "--debug",
+        "--experimental",
+        "--analyzer-jar", str(analyzer_jar),
+        *ruleset_args,
+        "--project-model", str(model_dir),
+        "--output", str(sarif),
+        "--timeout", f"{scan_timeout_seconds}s",
+        "--max-memory", max_memory,
+        *resolved_flags,
+    ]
+
+
 def run_pipeline(build_dir: Path, project_dir: Path, results_dir: Path,
-                 max_memory: str, timeout: int) -> dict:
+                 max_memory: str, timeout: int,
+                 scan_flags: list[str] | None = None,
+                 extensions_dir: Path | None = None) -> dict:
     results_dir.mkdir(parents=True, exist_ok=True)
     opentaint = build_dir / "opentaint"
     analyzer_jar = build_dir / "opentaint-project-analyzer.jar"
@@ -127,6 +324,9 @@ def run_pipeline(build_dir: Path, project_dir: Path, results_dir: Path,
     for p in (opentaint, analyzer_jar, autobuilder_jar, rules_dir):
         if not p.exists():
             raise FileNotFoundError(f"missing build artifact: {p}")
+
+    expanded_extra_flags = _expand_scan_flags(
+        scan_flags or [], extensions_dir, rules_dir=rules_dir)
 
     # Keep project-model OUTSIDE results_dir so it is never cached or uploaded
     # as part of the per-project result bundle (multi-GB per project otherwise).
@@ -143,16 +343,16 @@ def run_pipeline(build_dir: Path, project_dir: Path, results_dir: Path,
         "--output", str(model_dir),
         str(project_dir),
     ]
-    scan_cmd = [
-        str(opentaint), "scan", "--debug",
-        "--experimental",
-        "--analyzer-jar", str(analyzer_jar),
-        "--ruleset", str(rules_dir),
-        "--project-model", str(model_dir),
-        "--output", str(sarif),
-        "--timeout", f"{max(timeout - 120, 60)}s",
-        "--max-memory", max_memory,
-    ]
+    scan_cmd = _build_scan_cmd(
+        opentaint=opentaint,
+        analyzer_jar=analyzer_jar,
+        rules_dir=rules_dir,
+        model_dir=model_dir,
+        sarif=sarif,
+        max_memory=max_memory,
+        scan_timeout_seconds=max(timeout - 120, 60),
+        extra_flags=expanded_extra_flags,
+    )
 
     # Do NOT pre-create model_dir: `opentaint compile --output` may refuse to
     # write into an already-existing directory (or produce inconsistent state).
@@ -161,7 +361,11 @@ def run_pipeline(build_dir: Path, project_dir: Path, results_dir: Path,
                     "peak_memory_bytes": None}
     try:
         with run_log.open("w") as log_fp:
-            rc, out, err, _ = _run(compile_cmd, timeout, log_fp)
+            # Only the compile step shells out to the project's build tool
+            # (Maven), so the download-resilience env is scoped to it; the scan
+            # step is pure opentaint and inherits the default environment.
+            rc, out, err, _ = _run(compile_cmd, timeout, log_fp,
+                                    env=maven_resilient_env())
             if rc != 0:
                 status["status"] = "error"
                 status["autobuilder_failed"] = True
@@ -199,12 +403,31 @@ def main() -> int:
     p.add_argument("--results-dir", required=True, type=Path)
     p.add_argument("--max-memory", default="8G")
     p.add_argument("--timeout", type=int, default=1200)
+    p.add_argument("--extensions-dir", type=Path, default=None,
+                   help="directory whose contents are reachable via the "
+                        "{ext} placeholder in --scan-flags-json")
+    p.add_argument("--scan-flags-json", default="[]",
+                   help="JSON-encoded list of extra CLI tokens appended to "
+                        "'opentaint scan'; each token may use {ext}")
     args = p.parse_args()
 
     try:
+        scan_flags = json.loads(args.scan_flags_json)
+        if not isinstance(scan_flags, list) or not all(isinstance(t, str) for t in scan_flags):
+            raise ValueError("--scan-flags-json must decode to a list of strings")
+    except (json.JSONDecodeError, ValueError) as e:
+        print(f"run_analysis: bad --scan-flags-json: {e}", file=sys.stderr)
+        return 2
+
+    try:
         status = run_pipeline(args.build_dir, args.project_dir,
-                              args.results_dir, args.max_memory, args.timeout)
+                              args.results_dir, args.max_memory, args.timeout,
+                              scan_flags=scan_flags,
+                              extensions_dir=args.extensions_dir)
     except FileNotFoundError as e:
+        print(f"run_analysis: {e}", file=sys.stderr)
+        return 2
+    except ValueError as e:
         print(f"run_analysis: {e}", file=sys.stderr)
         return 2
 

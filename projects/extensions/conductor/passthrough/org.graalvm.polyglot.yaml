@@ -1,0 +1,89 @@
+# OpenTaint passThrough approximations — org.graalvm.polyglot (GraalJS interop)
+#
+# Models taint copies on the JS-eval flow so a tainted script string propagates
+# into the Source handed to Context.eval, and so eval results carry taint back.
+#
+# OVERRIDE mode: merged with built-ins at the rule level (per-method, additive).
+# Methods that collide with a BUILT-IN passThrough are dropped from this file
+# (see the task report) because a colliding target errors at config load.
+passThrough:
+  # Source.newBuilder(language, CharSequence source, name) -> Source$Builder
+  # The script text (arg(1)) flows into the builder.
+  - function: org.graalvm.polyglot.Source#newBuilder
+    copy:
+      - from: arg(1)
+        to: result
+
+  # Source.create(language, CharSequence source) -> Source
+  - function: org.graalvm.polyglot.Source#create
+    copy:
+      - from: arg(1)
+        to: result
+
+  # Source.Builder.buildLiteral() -> Source : tainted builder yields tainted Source
+  - function: org.graalvm.polyglot.Source$Builder#buildLiteral
+    copy:
+      - from: this
+        to: result
+
+  # Source.Builder.build() -> Source : tainted builder yields tainted Source
+  - function: org.graalvm.polyglot.Source$Builder#build
+    copy:
+      - from: this
+        to: result
+
+  # Source.Builder.cached(boolean) -> Source$Builder : fluent, returns this
+  - function: org.graalvm.polyglot.Source$Builder#cached
+    copy:
+      - from: this
+        to: result
+
+  # Context.eval(...) -> Value : tainted Source/script yields a tainted result Value
+  - function: org.graalvm.polyglot.Context#eval
+    copy:
+      - from: arg(0)
+        to: result
+      - from: arg(1)
+        to: result
+
+  # Value.as(Class) -> unwrapped tainted result
+  - function: org.graalvm.polyglot.Value#as
+    copy:
+      - from: this
+        to: result
+
+  # Value.asString() -> tainted string of the result
+  - function: org.graalvm.polyglot.Value#asString
+    copy:
+      - from: this
+        to: result
+
+  # Value.asBoolean() -> tainted result
+  - function: org.graalvm.polyglot.Value#asBoolean
+    copy:
+      - from: this
+        to: result
+
+  # Value.asInt() -> tainted result
+  - function: org.graalvm.polyglot.Value#asInt
+    copy:
+      - from: this
+        to: result
+
+  # Value.asLong() -> tainted result
+  - function: org.graalvm.polyglot.Value#asLong
+    copy:
+      - from: this
+        to: result
+
+  # Value.asDouble() -> tainted result
+  - function: org.graalvm.polyglot.Value#asDouble
+    copy:
+      - from: this
+        to: result
+
+  # Value.putMember(identifier, value) -> tainted member value enters the receiver
+  - function: org.graalvm.polyglot.Value#putMember
+    copy:
+      - from: arg(1)
+        to: this

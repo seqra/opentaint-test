@@ -1,0 +1,14 @@
+# Pass-through approximations for com.jayway.jsonpath methods.
+#
+# Models the dropped (not-yet-approximated) JsonPath method listed in the
+# tracking unit com_jayway_jsonpath-passthrough.yaml.
+#
+# OVERRIDE mode: merged with built-ins at the rule level (per-method, additive).
+passThrough:
+  # JsonPath.parse(json[, configuration]) -> DocumentContext over the tainted
+  # JSON document. The parsed source (arg(0)) carries its taint into the
+  # returned context, which later .read(path) calls evaluate over.
+  - function: com.jayway.jsonpath.JsonPath#parse
+    copy:
+      - from: arg(0)
+        to: result

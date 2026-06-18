@@ -1,0 +1,25 @@
+# Pass-through approximations for Apache Kafka client carrier types.
+#
+# Models the dropped (not-yet-approximated) org.apache.kafka methods listed in
+# the tracking unit org_apache_kafka-passthrough.yaml. Both targets are
+# constructors of broker-bound carrier objects: a tainted topic/key/value (or
+# header name/bytes) passed to the constructor is carried into the receiver
+# object, which is then handed to the producer (the sink).
+#
+# Semantics: arg -> receiver (this). ProducerRecord has several overloads with
+# different key/value positions, so every constructor argument is copied onto
+# the receiver via arg(*) to cover all of them.
+#
+# OVERRIDE mode: merged with built-ins at the rule level (per-method, additive).
+passThrough:
+  # ProducerRecord(...) -> tainted topic/key/value carried into the record
+  - function: org.apache.kafka.clients.producer.ProducerRecord#<init>
+    copy:
+      - from: arg(*)
+        to: this
+
+  # RecordHeader(key, value) -> tainted header name/bytes carried into the header
+  - function: org.apache.kafka.common.header.internals.RecordHeader#<init>
+    copy:
+      - from: arg(*)
+        to: this

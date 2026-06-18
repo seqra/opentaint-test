@@ -1,0 +1,13 @@
+# Pass-through approximations for the DataStax Cassandra driver.
+#
+# Models the dropped (not-yet-approximated) method listed in the tracking unit
+# com_datastax_driver_core-passthrough.yaml.
+#
+# OVERRIDE mode: merged with built-ins at the rule level (per-method, additive).
+passThrough:
+  # PreparedStatement.bind(values...) -> BoundStatement carrying the tainted
+  # bind values into the CQL execution (injection carrier). arg -> return.
+  - function: com.datastax.driver.core.PreparedStatement#bind
+    copy:
+      - from: arg(*)
+        to: result

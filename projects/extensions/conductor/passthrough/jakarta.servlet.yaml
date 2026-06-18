@@ -1,0 +1,15 @@
+# Pass-through approximations for jakarta.servlet methods.
+#
+# Models the dropped (not-yet-approximated) jakarta.servlet methods listed in
+# the tracking unit jakarta_servlet-passthrough.yaml.
+#
+# OVERRIDE mode: merged with built-ins at the rule level (per-method, additive).
+passThrough:
+  # RequestDispatcher.forward(request, response) -> the tainted request is
+  # forwarded onward; its taint reaches the response and stays on the request.
+  - function: jakarta.servlet.RequestDispatcher#forward
+    copy:
+      - from: arg(0)
+        to: arg(0)
+      - from: arg(0)
+        to: arg(1)

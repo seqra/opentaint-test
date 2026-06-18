@@ -1,0 +1,28 @@
+rules:
+  - id: conductor-jq-injection
+    severity: ERROR
+    message: >-
+      Untrusted input flows into a jackson-jq query expression compiled by
+      JsonQuery.compile. An attacker who controls this value can run arbitrary
+      jq programs, leading to information disclosure, data extraction, or
+      denial of service.
+    metadata:
+      cwe: CWE-94
+      short-description: Expression injection via jackson-jq JsonQuery.compile
+    languages:
+      - java
+    mode: join
+    join:
+      refs:
+        - rule: java/lib/spring/untrusted-data-source.yaml#spring-untrusted-data-source
+          as: spring-source
+        - rule: java/lib/generic/servlet-untrusted-data-source.yaml#java-servlet-untrusted-data-source
+          as: servlet-source
+        - rule: java/lib/generic/jackson-jq.yaml#jackson-jq
+          as: sink
+      on:
+        - 'spring-source.$UNTRUSTED -> sink.$UNTRUSTED'
+        - 'servlet-source.$UNTRUSTED -> sink.$UNTRUSTED'
+      comment: >-
+        jq expression injection: untrusted input reaches
+        net.thisptr.jackson.jq.JsonQuery.compile.

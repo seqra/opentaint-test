@@ -9,7 +9,7 @@ Output JSON shape (printed to stdout):
 
     {"include": [
         {"project": "spring-petclinic", "git": "...", "head": "...",
-         "java_version": "17", "max_memory": "8G",
+         "java_version": "17", "max_memory": "8G", "compilation_timeout": "1200",
          "ref_kind": "base", "analyzer_sha": "<sha>"},
         ...
     ]}
@@ -26,12 +26,28 @@ import yaml
 
 DEFAULT_JAVA = "17"
 DEFAULT_MEMORY = "8G"
+DEFAULT_COMPILATION_TIMEOUT = "1200"
 
 
 def _matches_filter(name: str, patterns: list[str]) -> bool:
     if not patterns:
         return True
     return any(p in name for p in patterns)
+
+
+def _normalise_scan_flags(raw) -> list[str]:
+    """Coerce the YAML `scan-flags` field into a clean ``list[str]``.
+
+    Accepts None / missing (→ empty list) or a list of scalars. Any other
+    shape is a configuration error and raised loudly so the workflow fails
+    fast instead of silently dropping flags.
+    """
+    if raw is None:
+        return []
+    if not isinstance(raw, list):
+        raise ValueError(
+            f"scan-flags must be a list, got {type(raw).__name__}: {raw!r}")
+    return [str(token) for token in raw]
 
 
 def _load_misses(path: str | None) -> set[tuple[str, str]]:
@@ -64,6 +80,14 @@ def build_matrix(repos_path: Path, base_sha: str, new_sha: str,
                 "head": repo["head"],
                 "java_version": str(repo.get("java-version", DEFAULT_JAVA)),
                 "max_memory": str(repo.get("max-memory", DEFAULT_MEMORY)),
+                "compilation_timeout": str(
+                    repo.get("compilation-timeout", DEFAULT_COMPILATION_TIMEOUT)),
+                # Emitted as a real JSON array — not a nested JSON-encoded
+                # string — so the matrix payload contains no backslash
+                # escapes that downstream shell + Python interpolation
+                # would otherwise mangle. The workflow re-serialises with
+                # ``toJson(matrix.scan_flags)`` at the point of use.
+                "scan_flags": _normalise_scan_flags(repo.get("scan-flags")),
                 "ref_kind": ref_kind,
                 "analyzer_sha": sha,
             })

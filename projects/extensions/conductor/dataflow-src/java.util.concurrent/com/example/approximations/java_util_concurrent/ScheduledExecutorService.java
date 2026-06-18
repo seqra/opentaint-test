@@ -1,0 +1,34 @@
+package com.example.approximations.java_util_concurrent;
+
+import org.opentaint.ir.approximation.annotation.Approximate;
+import org.opentaint.jvm.dataflow.approximations.ArgumentTypeContext;
+import org.opentaint.jvm.dataflow.approximations.OpentaintNdUtil;
+
+import java.util.concurrent.TimeUnit;
+
+@Approximate(java.util.concurrent.ScheduledExecutorService.class)
+public class ScheduledExecutorService {
+
+    // Model: the submitted Runnable captures tainted state; running it lets that
+    // taint surface at whatever the lambda body touches (callback boundary).
+    public java.util.concurrent.ScheduledFuture schedule(@ArgumentTypeContext Runnable command, long delay, TimeUnit unit) {
+        if (OpentaintNdUtil.nextBool()) {
+            command.run();
+        }
+        return null;
+    }
+
+    public java.util.concurrent.ScheduledFuture scheduleAtFixedRate(@ArgumentTypeContext Runnable command, long initialDelay, long period, TimeUnit unit) {
+        if (OpentaintNdUtil.nextBool()) {
+            command.run();
+        }
+        return null;
+    }
+
+    public java.util.concurrent.ScheduledFuture scheduleWithFixedDelay(@ArgumentTypeContext Runnable command, long initialDelay, long delay, TimeUnit unit) {
+        if (OpentaintNdUtil.nextBool()) {
+            command.run();
+        }
+        return null;
+    }
+}

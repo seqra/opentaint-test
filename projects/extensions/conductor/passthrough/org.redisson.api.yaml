@@ -1,0 +1,12 @@
+# Pass-through approximations for org.redisson.api methods.
+#
+# Models the dropped (not-yet-approximated) Redisson methods listed in the
+# tracking unit org_redisson_api-passthrough.yaml.
+#
+# OVERRIDE mode: merged with built-ins at the rule level (per-method, additive).
+passThrough:
+  # RedissonClient.getLock(name) -> RLock carrying the tainted lock name
+  - function: org.redisson.api.RedissonClient#getLock
+    copy:
+      - from: arg(0)
+        to: result

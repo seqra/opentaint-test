@@ -1,0 +1,168 @@
+# Pass-through approximations for org.opensearch query / index / request builders.
+#
+# Models the dropped (not-yet-approximated) org.opensearch methods listed in the
+# tracking unit org_opensearch-passthrough.yaml. These mirror the Elasticsearch
+# builders: tainted terms/fields/values are carried into the constructed query,
+# request, or builder object (and returned from fluent setters / static factories).
+#
+# OVERRIDE mode: merged with built-ins at the rule level (per-method, additive).
+passThrough:
+  # --- Action request constructors: tainted index/id/source enters the request ---
+
+  # new DeleteRequest(index, id) -> request carries the tainted index/id
+  - function: org.opensearch.action.delete.DeleteRequest#<init>
+    copy:
+      - from: arg(*)
+        to: this
+
+  # new GetRequest(index, id) -> request carries the tainted index/id
+  - function: org.opensearch.action.get.GetRequest#<init>
+    copy:
+      - from: arg(*)
+        to: this
+
+  # new SearchRequest(indices...) -> request carries the tainted indices
+  - function: org.opensearch.action.search.SearchRequest#<init>
+    copy:
+      - from: arg(*)
+        to: this
+
+  # new UpdateRequest(index, id) -> request carries the tainted index/id
+  - function: org.opensearch.action.update.UpdateRequest#<init>
+    copy:
+      - from: arg(*)
+        to: this
+
+  # --- IndexRequest fluent setters: arg into receiver and returned builder ---
+
+  # IndexRequest.id(id) -> tainted id stored, returns this
+  - function: org.opensearch.action.index.IndexRequest#id
+    copy:
+      - from: arg(0)
+        to: this
+      - from: arg(0)
+        to: result
+      - from: this
+        to: result
+
+  # IndexRequest.source(...) -> tainted document source stored, returns this
+  - function: org.opensearch.action.index.IndexRequest#source
+    copy:
+      - from: arg(*)
+        to: this
+      - from: arg(*)
+        to: result
+      - from: this
+        to: result
+
+  # --- BoolQueryBuilder clause adders: arg into receiver and returned builder ---
+
+  # BoolQueryBuilder.must(query) -> tainted clause added, returns this
+  - function: org.opensearch.index.query.BoolQueryBuilder#must
+    copy:
+      - from: arg(0)
+        to: this
+      - from: arg(0)
+        to: result
+      - from: this
+        to: result
+
+  # BoolQueryBuilder.should(query) -> tainted clause added, returns this
+  - function: org.opensearch.index.query.BoolQueryBuilder#should
+    copy:
+      - from: arg(0)
+        to: this
+      - from: arg(0)
+        to: result
+      - from: this
+        to: result
+
+  # --- QueryBuilders static factories: tainted field/value into the new query ---
+
+  # QueryBuilders.existsQuery(field) -> query over the tainted field
+  - function: org.opensearch.index.query.QueryBuilders#existsQuery
+    copy:
+      - from: arg(*)
+        to: result
+
+  # QueryBuilders.prefixQuery(field, prefix) -> query over the tainted field/prefix
+  - function: org.opensearch.index.query.QueryBuilders#prefixQuery
+    copy:
+      - from: arg(*)
+        to: result
+
+  # QueryBuilders.queryStringQuery(queryString) -> query over the tainted string
+  - function: org.opensearch.index.query.QueryBuilders#queryStringQuery
+    copy:
+      - from: arg(*)
+        to: result
+
+  # QueryBuilders.rangeQuery(field) -> range query over the tainted field
+  - function: org.opensearch.index.query.QueryBuilders#rangeQuery
+    copy:
+      - from: arg(*)
+        to: result
+
+  # QueryBuilders.termsQuery(field, values...) -> query over the tainted field/values
+  - function: org.opensearch.index.query.QueryBuilders#termsQuery
+    copy:
+      - from: arg(*)
+        to: result
+
+  # --- RangeQueryBuilder bound setters: arg into receiver and returned builder ---
+
+  # RangeQueryBuilder.from(value) -> tainted lower bound stored, returns this
+  - function: org.opensearch.index.query.RangeQueryBuilder#from
+    copy:
+      - from: arg(0)
+        to: this
+      - from: arg(0)
+        to: result
+      - from: this
+        to: result
+
+  # RangeQueryBuilder.to(value) -> tainted upper bound stored, returns this
+  - function: org.opensearch.index.query.RangeQueryBuilder#to
+    copy:
+      - from: arg(0)
+        to: this
+      - from: arg(0)
+        to: result
+      - from: this
+        to: result
+
+  # --- SearchSourceBuilder paging setters: arg into receiver and returned builder ---
+
+  # SearchSourceBuilder.from(offset) -> tainted offset stored, returns this
+  - function: org.opensearch.search.builder.SearchSourceBuilder#from
+    copy:
+      - from: arg(0)
+        to: this
+      - from: arg(0)
+        to: result
+      - from: this
+        to: result
+
+  # SearchSourceBuilder.size(size) -> tainted size stored, returns this
+  - function: org.opensearch.search.builder.SearchSourceBuilder#size
+    copy:
+      - from: arg(0)
+        to: this
+      - from: arg(0)
+        to: result
+      - from: this
+        to: result
+
+  # --- FieldSortBuilder: tainted sort field name enters the builder ---
+
+  # new FieldSortBuilder(field) -> builder carries the tainted field name
+  - function: org.opensearch.search.sort.FieldSortBuilder#<init>
+    copy:
+      - from: arg(*)
+        to: this
+
+  # SortOrder.valueOf(name) -> enum parsed from the tainted name
+  - function: org.opensearch.search.sort.SortOrder#valueOf
+    copy:
+      - from: arg(0)
+        to: result

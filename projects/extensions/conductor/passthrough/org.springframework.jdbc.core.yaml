@@ -1,0 +1,41 @@
+# Pass-through approximations for Spring JdbcTemplate query/update methods.
+#
+# Models the dropped org.springframework.jdbc.core methods from the tracking
+# unit org_springframework_jdbc_core-passthrough.yaml. These methods take a
+# tainted SQL string (and parameter args) and execute it against the DB; the
+# returned rows carry that taint back out. This is the SQL-injection carrier
+# path: tainted SQL/args flow arg -> result.
+#
+# OVERRIDE mode: merged with built-ins at the rule level (per-method, additive).
+passThrough:
+  # JdbcTemplate.query(sql, ...) -> result rows derived from the tainted SQL/args
+  - function: org.springframework.jdbc.core.JdbcTemplate#query
+    copy:
+      - from: arg(0)
+        to: result
+      - from: arg(*)
+        to: result
+
+  # JdbcTemplate.queryForList(sql, ...) -> list of rows from the tainted SQL/args
+  - function: org.springframework.jdbc.core.JdbcTemplate#queryForList
+    copy:
+      - from: arg(0)
+        to: result
+      - from: arg(*)
+        to: result
+
+  # JdbcTemplate.queryForObject(sql, ...) -> single value from the tainted SQL/args
+  - function: org.springframework.jdbc.core.JdbcTemplate#queryForObject
+    copy:
+      - from: arg(0)
+        to: result
+      - from: arg(*)
+        to: result
+
+  # JdbcTemplate.update(sql, ...) -> affected-row count from the tainted SQL/args
+  - function: org.springframework.jdbc.core.JdbcTemplate#update
+    copy:
+      - from: arg(0)
+        to: result
+      - from: arg(*)
+        to: result

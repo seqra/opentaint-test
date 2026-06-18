@@ -253,7 +253,7 @@ jobs:
             --filter   "${{ inputs.projects_filter }}" \
             --misses-only misses.json)
           echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
-          has=$(python -c "import json;print('true' if json.loads('''$matrix''')['include'] else 'false')")
+          has=$(printf '%s' "$matrix" | python -c "import json, sys; print('true' if json.load(sys.stdin)['include'] else 'false')")
           echo "has_cells=$has" >> "$GITHUB_OUTPUT"
 
   analyze:
@@ -296,14 +296,18 @@ jobs:
           echo "key=$key" >> "$GITHUB_OUTPUT"
       - name: Run analysis
         id: ra
+        env:
+          SCAN_FLAGS_JSON: ${{ toJson(matrix.scan_flags) }}
         run: |
           set +e
           python scripts/run_analysis.py \
-            --build-dir   build \
-            --project-dir project-root \
-            --results-dir results-bundle \
-            --max-memory  "${{ matrix.max_memory }}" \
-            --timeout     1200
+            --build-dir       build \
+            --project-dir     project-root \
+            --results-dir     results-bundle \
+            --max-memory      "${{ matrix.max_memory }}" \
+            --timeout         "${{ matrix.compilation_timeout }}" \
+            --extensions-dir  projects/extensions \
+            --scan-flags-json "$SCAN_FLAGS_JSON"
           rc=$?
           echo "rc=$rc" >> "$GITHUB_OUTPUT"
           # Exit 0 so cache/upload steps still run; we fail the job at the end

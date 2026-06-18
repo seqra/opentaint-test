@@ -1,0 +1,31 @@
+# Pass-through approximations for com.google.rpc proto builders.
+#
+# Models the dropped (not-yet-approximated) com.google.rpc methods listed in
+# the tracking unit com_google_rpc-passthrough.yaml. These are gRPC DebugInfo
+# builder methods that carry tainted strings into the status detail; the
+# tainted argument flows onto the receiver (builder state) and the returned
+# builder (chaining).
+#
+# OVERRIDE mode: merged with built-ins at the rule level (per-method, additive).
+passThrough:
+  # DebugInfo.Builder.setDetail(String) -> tainted detail enters builder and
+  # is returned for chaining.
+  - function: com.google.rpc.DebugInfo$Builder#setDetail
+    copy:
+      - from: arg(0)
+        to: this
+      - from: arg(0)
+        to: result
+      - from: this
+        to: result
+
+  # DebugInfo.Builder.addAllStackEntries(Iterable<String>) -> tainted stack
+  # entries enter builder and is returned for chaining.
+  - function: com.google.rpc.DebugInfo$Builder#addAllStackEntries
+    copy:
+      - from: arg(0)
+        to: this
+      - from: arg(0)
+        to: result
+      - from: this
+        to: result

@@ -1,0 +1,29 @@
+# Pass-through approximations for non-lambda java.util.stream plumbing.
+#
+# Models the dropped (not-yet-approximated) java.util.stream methods listed in
+# the tracking unit java_util_stream-passthrough.yaml. These are the non-lambda
+# stream operations that carry elements through unchanged (lambda-based ops are
+# modeled in the dataflow unit). Each is a simple copy from the receiver into
+# the produced value.
+#
+# OVERRIDE mode: merged with built-ins at the rule level (per-method, additive).
+# Methods that collide with a BUILT-IN passThrough are dropped from this file
+# (see the task report) because a colliding target errors at config load.
+passThrough:
+  # BaseStream.iterator() -> Iterator over the tainted stream's elements
+  - function: java.util.stream.BaseStream#iterator
+    copy:
+      - from: this
+        to: result
+
+  # IntStream.of(values...) -> stream backed by the tainted int values
+  - function: java.util.stream.IntStream#of
+    copy:
+      - from: arg(0)
+        to: result
+
+  # Stream.limit(n) -> truncated stream still carrying the tainted elements
+  - function: java.util.stream.Stream#limit
+    copy:
+      - from: this
+        to: result

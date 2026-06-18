@@ -1,0 +1,95 @@
+# Pass-through approximations for AWS SDK v2 request builders / RequestBody factories.
+#
+# Models the dropped (not-yet-approximated) software.amazon.awssdk methods listed
+# in the tracking unit software_amazon_awssdk-passthrough.yaml.
+#
+# RequestBody.fromString / fromInputStream are static factories: the tainted
+# argument (the body content / stream) flows into the produced RequestBody.
+# All other targets are fluent builder setters: the tainted argument flows onto
+# the builder (this, for chaining) and onto the returned builder (result).
+#
+# OVERRIDE mode: merged with built-ins at the rule level (per-method, additive).
+passThrough:
+  # RequestBody.fromString(String) -> RequestBody carrying the tainted body
+  - function: software.amazon.awssdk.core.sync.RequestBody#fromString
+    copy:
+      - from: arg(0)
+        to: result
+
+  # RequestBody.fromInputStream(InputStream, long) -> RequestBody carrying the tainted stream
+  - function: software.amazon.awssdk.core.sync.RequestBody#fromInputStream
+    copy:
+      - from: arg(0)
+        to: result
+
+  # CompleteMultipartUploadRequest.Builder.uploadId(String) -> tainted builder
+  - function: software.amazon.awssdk.services.s3.model.CompleteMultipartUploadRequest$Builder#uploadId
+    copy:
+      - from: arg(0)
+        to: this
+      - from: arg(0)
+        to: result
+
+  # CompletedPart.Builder.eTag(String) -> tainted builder
+  - function: software.amazon.awssdk.services.s3.model.CompletedPart$Builder#eTag
+    copy:
+      - from: arg(0)
+        to: this
+      - from: arg(0)
+        to: result
+
+  # GetObjectRequest.Builder.key(String) -> tainted builder
+  - function: software.amazon.awssdk.services.s3.model.GetObjectRequest$Builder#key
+    copy:
+      - from: arg(0)
+        to: this
+      - from: arg(0)
+        to: result
+
+  # PutObjectRequest.Builder.key(String) -> tainted builder
+  - function: software.amazon.awssdk.services.s3.model.PutObjectRequest$Builder#key
+    copy:
+      - from: arg(0)
+        to: this
+      - from: arg(0)
+        to: result
+
+  # UploadPartRequest.Builder.uploadId(String) -> tainted builder
+  - function: software.amazon.awssdk.services.s3.model.UploadPartRequest$Builder#uploadId
+    copy:
+      - from: arg(0)
+        to: this
+      - from: arg(0)
+        to: result
+
+  # DeleteMessageBatchRequestEntry.Builder.id(String) -> tainted builder
+  - function: software.amazon.awssdk.services.sqs.model.DeleteMessageBatchRequestEntry$Builder#id
+    copy:
+      - from: arg(0)
+        to: this
+      - from: arg(0)
+        to: result
+
+  # DeleteMessageBatchRequestEntry.Builder.receiptHandle(String) -> tainted builder
+  - function: software.amazon.awssdk.services.sqs.model.DeleteMessageBatchRequestEntry$Builder#receiptHandle
+    copy:
+      - from: arg(0)
+        to: this
+      - from: arg(0)
+        to: result
+
+  # SendMessageBatchRequestEntry.Builder.id(String) -> tainted builder
+  - function: software.amazon.awssdk.services.sqs.model.SendMessageBatchRequestEntry$Builder#id
+    copy:
+      - from: arg(0)
+        to: this
+      - from: arg(0)
+        to: result
+
+  # SendMessageBatchRequestEntry.Builder.messageBody(String) -> tainted builder
+  - function: software.amazon.awssdk.services.sqs.model.SendMessageBatchRequestEntry$Builder#messageBody
+    copy:
+      - from: arg(0)
+        to: this
+      - from: arg(0)
+        to: result

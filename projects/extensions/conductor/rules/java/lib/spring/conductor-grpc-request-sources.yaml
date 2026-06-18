@@ -1,0 +1,63 @@
+rules:
+  - id: conductor-grpc-request-sources
+    severity: ERROR
+    message: >-
+      A value read from a protobuf request message handled by a Conductor gRPC
+      service (a class extending a generated *Grpc.*ImplBase) is fully
+      attacker-controlled and flows into a dangerous filesystem path operation.
+    metadata:
+      cwe: CWE-22
+      short-description: Untrusted Conductor gRPC request reaching a filesystem sink
+      source-type: conductor-grpc
+      references:
+        - com.netflix.conductor.grpc.server.service.WorkflowServiceImpl
+      full-description: |-
+        gRPC service implementations in Conductor extend a protoc/grpc-generated
+        base class named `*Grpc.*ImplBase` (for example
+        `com.netflix.conductor.grpc.WorkflowServiceGrpc.WorkflowServiceImplBase`).
+        Each handler receives a protobuf request message whose declared type
+        extends `com.google.protobuf.GeneratedMessageV3` (and implements
+        `com.google.protobuf.MessageOrBuilder`). Every value read from that
+        request via a getter such as `req.getName()` / `req.getInput()` is
+        attacker-controlled. This rule marks those getter results as an untrusted
+        taint source, scoped to gRPC handler classes, so they fire when reaching a
+        dangerous sink (here: filesystem path operations / path traversal).
+
+        Recommended handling at the boundary:
+        - Treat all gRPC request fields as untrusted.
+        - Validate and normalize identifiers/paths before any unsafe usage.
+    languages: [java]
+    mode: taint
+    pattern-sources:
+      # The result of a getter call on the protobuf request object
+      # (`req.getXxx()`) is the attacker-controlled source. The receiver type is
+      # intentionally left unconstrained: the analyzer does not resolve the
+      # protoc-generated request subtype back to GeneratedMessageV3 for
+      # type-constrained metavariable matching, but it does match the getter call
+      # shape. Precision instead comes from two constraints:
+      #   * the getter-name regex (^get.+), and
+      #   * the enclosing-class constraint (extends *.*ImplBase), which is what
+      #     distinguishes a real gRPC handler from an ordinary getter call and is
+      #     load-bearing (without it, e.g. System.getProperty(...) would match).
+      - patterns:
+          - pattern-inside: |
+              class $C extends $OUTER.$IMPLBASE { ... }
+          - metavariable-regex:
+              metavariable: $IMPLBASE
+              regex: .*ImplBase$
+          - pattern: $REQ.$GETTER(...)
+          - metavariable-regex:
+              metavariable: $GETTER
+              regex: ^get.+
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: new java.io.File($SINK)
+              - pattern: new java.io.File($SINK, ...)
+              - pattern: new java.io.FileInputStream($SINK)
+              - pattern: new java.io.FileReader($SINK)
+              - pattern: new java.io.FileWriter($SINK)
+              - pattern: new java.io.RandomAccessFile($SINK, ...)
+              - pattern: java.nio.file.Paths.get($SINK, ...)
+              - pattern: java.nio.file.Path.of($SINK, ...)
+          - focus-metavariable: $SINK

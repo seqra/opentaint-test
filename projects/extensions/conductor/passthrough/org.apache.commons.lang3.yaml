@@ -1,0 +1,67 @@
+# OpenTaint passThrough approximations — org.apache.commons.lang3.StringUtils
+#
+# Pure string transforms: taint flows from the input String argument to the
+# returned String, unchanged. Modeled arg(0) -> result.
+#
+# --passthrough-approximations is OVERRIDE mode and additive per method: a
+# provided rule that matches a built-in (e.g. StringUtils#upperCase) simply
+# overrides it, it does not error at load. Verified: no target in this file
+# errored on load. (Built-ins also cover defaultIfBlank/removeEnd/trimToNull,
+# which are not part of this set.)
+passThrough:
+  - function: org.apache.commons.lang3.StringUtils#trim
+    copy:
+      - from: arg(0)
+        to: result
+  - function: org.apache.commons.lang3.StringUtils#strip
+    copy:
+      - from: arg(0)
+        to: result
+  - function: org.apache.commons.lang3.StringUtils#substring
+    copy:
+      - from: arg(0)
+        to: result
+  - function: org.apache.commons.lang3.StringUtils#substringBefore
+    copy:
+      - from: arg(0)
+        to: result
+  - function: org.apache.commons.lang3.StringUtils#substringAfter
+    copy:
+      - from: arg(0)
+        to: result
+  - function: org.apache.commons.lang3.StringUtils#upperCase
+    copy:
+      - from: arg(0)
+        to: result
+  - function: org.apache.commons.lang3.StringUtils#lowerCase
+    copy:
+      - from: arg(0)
+        to: result
+  - function: org.apache.commons.lang3.StringUtils#capitalize
+    copy:
+      - from: arg(0)
+        to: result
+  - function: org.apache.commons.lang3.StringUtils#replace
+    copy:
+      - from: arg(0)
+        to: result
+  - function: org.apache.commons.lang3.StringUtils#normalizeSpace
+    copy:
+      - from: arg(0)
+        to: result
+  - function: org.apache.commons.lang3.StringUtils#defaultString
+    copy:
+      - from: arg(0)
+        to: result
+  - function: org.apache.commons.lang3.StringUtils#join
+    copy:
+      - from: arg(0)
+        to: result
+  - function: org.apache.commons.lang3.StringUtils#trimToEmpty
+    copy:
+      - from: arg(0)
+        to: result
+  - function: org.apache.commons.lang3.StringUtils#stripToNull
+    copy:
+      - from: arg(0)
+        to: result

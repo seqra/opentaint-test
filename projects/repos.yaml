@@ -37,6 +37,7 @@ repositories:
   - name: ruoyi-vue-pro
     git: https://github.com/YunaiV/ruoyi-vue-pro.git
     head: b29c5f0e40cfab289613992ddaddfb08d60a3e44
+    compilation-timeout: 2700
 
   - name: spring-petclinic
     git: https://github.com/spring-projects/spring-petclinic.git
@@ -56,6 +57,7 @@ repositories:
     git: https://github.com/YunaiV/yudao-cloud.git
     head: 99ffe0fd41c2b783ef83e6c8704e6e264603b484
     max-memory: 12G
+    compilation-timeout: 2700
 
   - name: halo
     git: https://github.com/halo-dev/halo.git
@@ -69,7 +71,7 @@ repositories:
 
   - name: apollo
     git: https://github.com/apolloconfig/apollo.git
-    head: 9de9a1580f5eb3d9bfa7a2b95b95c693bf2032a4
+    head: a070aa11b81b84bc500a575bc41937c3522fea1e
 
   - name: snowy
     git: https://github.com/xiaonuobase/Snowy.git
@@ -116,3 +118,18 @@ repositories:
   - name: continew-admin
     git: https://github.com/continew-org/continew-admin.git
     head: 9776dfbf311d652b30a4599ac7989c35b29da372
+    compilation-timeout: 2700
+
+  - name: conductor
+    git: https://github.com/conductor-oss/conductor.git
+    head: c466eaf70f3ac16b915120dd651e91aae28451c1
+    java-version: 21
+    scan-flags:
+      - --passthrough-approximations
+      - "{ext}/conductor/passthrough"
+      - --dataflow-approximations
+      - "{ext}/conductor/dataflow-src"
+      - --ruleset
+      - builtin
+      - --ruleset
+      - "{ext}/conductor/rules"

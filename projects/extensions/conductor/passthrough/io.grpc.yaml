@@ -1,0 +1,23 @@
+# Pass-through approximations for io.grpc carrier methods.
+#
+# Models the dropped (not-yet-approximated) io.grpc methods listed in the
+# tracking unit io_grpc-passthrough.yaml. gRPC Status.withDescription /
+# StreamObserver.onNext carry tainted strings into the response (arg -> receiver/result).
+#
+# OVERRIDE mode: merged with built-ins at the rule level (per-method, additive).
+passThrough:
+  # Status.withDescription(description) -> new Status carrying the tainted
+  # description; receiver also retains the taint.
+  - function: io.grpc.Status#withDescription
+    copy:
+      - from: arg(0)
+        to: result
+      - from: arg(0)
+        to: this
+
+  # StreamObserver.onNext(value) -> the tainted value flows into the observer
+  # (the response carrier).
+  - function: io.grpc.stub.StreamObserver#onNext
+    copy:
+      - from: arg(0)
+        to: this

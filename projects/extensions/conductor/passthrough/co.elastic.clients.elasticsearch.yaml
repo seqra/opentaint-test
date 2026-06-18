@@ -1,0 +1,13 @@
+# Pass-through approximations for the Elasticsearch java-client.
+#
+# Models the dropped (not-yet-approximated) co.elastic.clients.elasticsearch
+# methods listed in the tracking unit co_elastic_clients_elasticsearch-passthrough.yaml.
+#
+# OVERRIDE mode: merged with built-ins at the rule level (per-method, additive).
+passThrough:
+  # BulkIngester.add(operation) -> the tainted BulkOperation enters the ingester
+  # (returns void, so taint lands on the receiver). Semantics: arg -> receiver.
+  - function: co.elastic.clients.elasticsearch._helpers.bulk.BulkIngester#add
+    copy:
+      - from: arg(0)
+        to: this

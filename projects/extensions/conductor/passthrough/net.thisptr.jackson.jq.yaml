@@ -1,0 +1,22 @@
+# Pass-through approximation for jackson-jq (net.thisptr.jackson.jq).
+#
+# Models the dropped jackson-jq method tracked in
+# net_thisptr_jackson_jq-passthrough.yaml. jackson-jq is the jq carrier on the
+# jq-injection flow: a compiled JsonQuery runs a jq expression over an input
+# JsonNode and returns the matching nodes.
+#
+# JsonQuery#apply(...) takes the input JsonNode/List<JsonNode> and returns a
+# List<JsonNode> of results derived from it; the tainted input data therefore
+# reaches the returned results. The overloads place the data at arg(0)
+# (apply(JsonNode) / apply(List)) or at arg(1) (apply(Scope, JsonNode) /
+# apply(Scope, List)), so both argument positions are copied to result.
+#
+# OVERRIDE mode: merged with built-ins at the rule level (per-method, additive).
+passThrough:
+  # JsonQuery.apply(...) -> result nodes carry the taint of the input node(s)
+  - function: net.thisptr.jackson.jq.JsonQuery#apply
+    copy:
+      - from: arg(0)
+        to: result
+      - from: arg(1)
+        to: result

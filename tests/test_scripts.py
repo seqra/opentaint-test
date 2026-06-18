@@ -6,6 +6,7 @@ Run with: python -m pytest new-test/tests -v
 from __future__ import annotations
 
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -16,6 +17,7 @@ sys.path.insert(0, str(HERE.parent / "scripts"))
 
 import cache_key  # noqa: E402
 import compare_sarif  # noqa: E402
+import generate_matrix  # noqa: E402
 import run_analysis  # noqa: E402
 
 
@@ -226,7 +228,256 @@ def test_extract_peak_memory_missing_file(tmp_path):
     assert run_analysis.extract_peak_memory(None) is None
 
 
-# ── compare_sarif: markdown rendering smoke test ────────────────────────────
+# ── generate_matrix: scan-flags propagation ────────────────────────────
+
+def _write_repos(tmp_path: Path, body: str) -> Path:
+    p = tmp_path / "repos.yaml"
+    p.write_text(body)
+    return p
+
+
+def test_matrix_scan_flags_default_empty(tmp_path):
+    repos = _write_repos(tmp_path, (
+        "repositories:\n"
+        "  - name: demo\n"
+        "    git: https://example.com/demo.git\n"
+        "    head: deadbeef\n"
+    ))
+    m = generate_matrix.build_matrix(repos, "AAA", "BBB", [], None)
+    # Real JSON array — not a nested JSON-encoded string — so the matrix
+    # payload survives shell + Python interpolation in the workflow.
+    assert [e["scan_flags"] for e in m["include"]] == [[], []]
+
+
+def test_matrix_scan_flags_round_trip(tmp_path):
+    repos = _write_repos(tmp_path, (
+        "repositories:\n"
+        "  - name: demo\n"
+        "    git: https://example.com/demo.git\n"
+        "    head: deadbeef\n"
+        "    scan-flags:\n"
+        "      - --rule-id\n"
+        "      - java.taint.sql-injection\n"
+        "      - \"--passthrough-approximations\"\n"
+        "      - \"{ext}/demo/pt.yaml\"\n"
+    ))
+    m = generate_matrix.build_matrix(repos, "AAA", "AAA", [], None)
+    assert len(m["include"]) == 1
+    assert m["include"][0]["scan_flags"] == [
+        "--rule-id", "java.taint.sql-injection",
+        "--passthrough-approximations", "{ext}/demo/pt.yaml",
+    ]
+
+
+def test_matrix_output_has_no_escaped_quotes(tmp_path):
+    """Regression: the whole matrix JSON, as printed by main(), must not
+    contain ``\\"`` sequences — those break
+    ``python -c '... json.loads('''$matrix''') ...'`` in the workflow,
+    where Python's source lexer would resolve ``\\"`` to ``"`` before
+    JSON parsing."""
+    repos = _write_repos(tmp_path, (
+        "repositories:\n"
+        "  - name: demo\n"
+        "    git: https://example.com/demo.git\n"
+        "    head: deadbeef\n"
+        "    scan-flags:\n"
+        "      - --ruleset\n"
+        "      - \"{ext}/demo/rules.yaml\"\n"
+    ))
+    m = generate_matrix.build_matrix(repos, "AAA", "AAA", [], None)
+    serialised = json.dumps(m)
+    assert "\\\"" not in serialised, (
+        f"matrix JSON contains escaped quotes that will break shell+python "
+        f"interpolation: {serialised}")
+
+
+def test_matrix_scan_flags_rejects_non_list(tmp_path):
+    repos = _write_repos(tmp_path, (
+        "repositories:\n"
+        "  - name: demo\n"
+        "    git: https://example.com/demo.git\n"
+        "    head: deadbeef\n"
+        "    scan-flags: --rule-id=foo\n"
+    ))
+    with pytest.raises(ValueError):
+        generate_matrix.build_matrix(repos, "AAA", "AAA", [], None)
+
+
+# ── run_analysis: scan-flag expansion ────────────────────────────────
+
+def test_expand_scan_flags_substitutes_ext(tmp_path):
+    ext = tmp_path / "ext"; ext.mkdir()
+    expanded = run_analysis._expand_scan_flags(
+        ["--passthrough-approximations", "{ext}/demo/pt.yaml", "--rule-id", "r1"],
+        ext,
+    )
+    assert expanded == [
+        "--passthrough-approximations",
+        f"{ext.resolve()}/demo/pt.yaml",
+        "--rule-id",
+        "r1",
+    ]
+
+
+def test_expand_scan_flags_no_placeholder_no_ext_ok():
+    # Tokens without {ext} don't require an extensions directory.
+    assert run_analysis._expand_scan_flags(["--rule-id", "r1"], None) == [
+        "--rule-id", "r1",
+    ]
+
+
+def test_expand_scan_flags_missing_ext_raises():
+    with pytest.raises(ValueError):
+        run_analysis._expand_scan_flags(["{ext}/demo/pt.yaml"], None)
+
+
+def test_expand_scan_flags_empty_passthrough():
+    assert run_analysis._expand_scan_flags([], None) == []
+
+
+# ── run_analysis: scan-cmd assembly + ruleset policy ───────────────────
+
+# Centralised so all tests use the same staged-rules path — the runner now
+# rewrites ``builtin`` to this path and uses it as the implicit default.
+_STAGED_RULES_SUBDIR = "build-rules"
+
+
+def _scan_cmd(extra_flags, tmp_path):
+    rules_dir = tmp_path / _STAGED_RULES_SUBDIR
+    rules_dir.mkdir(exist_ok=True)
+    return run_analysis._build_scan_cmd(
+        opentaint=tmp_path / "opentaint",
+        analyzer_jar=tmp_path / "analyzer.jar",
+        rules_dir=rules_dir,
+        model_dir=tmp_path / "model",
+        sarif=tmp_path / "out.sarif",
+        max_memory="8G",
+        scan_timeout_seconds=1080,
+        extra_flags=extra_flags,
+    )
+
+
+def _staged_rules(tmp_path):
+    return str((tmp_path / _STAGED_RULES_SUBDIR).resolve())
+
+
+def _rulesets_in(cmd):
+    """Return the values that follow every occurrence of '--ruleset' in cmd."""
+    return [cmd[i + 1] for i, tok in enumerate(cmd) if tok == "--ruleset"]
+
+
+def test_build_scan_cmd_default_uses_staged_rules(tmp_path):
+    """With no project --ruleset, the runner defaults to the staged
+    source-tree pack at ``<build>/rules`` — *not* the CLI's ``builtin``
+    sentinel (which would trigger a 404 GitHub-release download)."""
+    cmd = _scan_cmd([], tmp_path)
+    assert _rulesets_in(cmd) == [_staged_rules(tmp_path)]
+
+
+def test_build_scan_cmd_project_ruleset_disables_default(tmp_path):
+    """Once the project supplies any --ruleset, the runner adds no default
+    of its own — the project owns the ruleset list."""
+    cmd = _scan_cmd(
+        ["--ruleset", "/abs/custom-rules.yaml",
+         "--ruleset", "/abs/rules-dir"],
+        tmp_path,
+    )
+    assert _rulesets_in(cmd) == [
+        "/abs/custom-rules.yaml",
+        "/abs/rules-dir",
+    ]
+
+
+def test_build_scan_cmd_translates_builtin_sentinel(tmp_path):
+    """``--ruleset builtin`` from the project is silently rewritten to the
+    staged source-tree pack. The CLI's network-download path is bypassed."""
+    cmd = _scan_cmd(
+        ["--ruleset", "builtin", "--ruleset", "/abs/extra.yaml"],
+        tmp_path,
+    )
+    assert _rulesets_in(cmd) == [
+        _staged_rules(tmp_path),   # was 'builtin'
+        "/abs/extra.yaml",
+    ]
+
+
+def test_build_scan_cmd_only_builtin_disables_default(tmp_path):
+    """A lone ``--ruleset builtin`` must not provoke a duplicate default —
+    the project supplied a --ruleset, so the runner adds nothing."""
+    cmd = _scan_cmd(["--ruleset", "builtin"], tmp_path)
+    assert _rulesets_in(cmd) == [_staged_rules(tmp_path)]
+
+
+def test_build_scan_cmd_non_value_builtin_untouched(tmp_path):
+    """A stray ``builtin`` token NOT in --ruleset value position must be
+    left alone (defensive against unrelated future flags)."""
+    cmd = _scan_cmd(["--rule-id", "builtin"], tmp_path)
+    # Default --ruleset still gets inserted (project supplied none).
+    assert _rulesets_in(cmd) == [_staged_rules(tmp_path)]
+    # The lone 'builtin' rides the tail untouched.
+    assert cmd[-2:] == ["--rule-id", "builtin"]
+
+
+def test_build_scan_cmd_extra_flags_appear_after_reserved(tmp_path):
+    cmd = _scan_cmd(["--rule-id", "java.taint.sql-injection"], tmp_path)
+    for required in ("--analyzer-jar", "--project-model", "--output",
+                      "--timeout", "--max-memory", "--debug", "--experimental"):
+        assert required in cmd, f"missing reserved flag {required}"
+    assert cmd[-2:] == ["--rule-id", "java.taint.sql-injection"]
+
+
+def test_build_scan_cmd_end_to_end_through_expand(tmp_path):
+    ext = tmp_path / "ext"; ext.mkdir()
+    expanded = run_analysis._expand_scan_flags(
+        ["--ruleset", "builtin",
+         "--ruleset", "{ext}/proj/rules.yaml",
+         "--ruleset", "{ext}/proj/rules"],
+        ext,
+    )
+    cmd = _scan_cmd(expanded, tmp_path)
+    # `builtin` is translated to the staged pack; project paths are kept
+    # verbatim; runner adds no default of its own.
+    assert _rulesets_in(cmd) == [
+        _staged_rules(tmp_path),
+        f"{ext.resolve()}/proj/rules.yaml",
+        f"{ext.resolve()}/proj/rules",
+    ]
+
+
+# ── run_analysis: {rules} placeholder ───────────────────────────────
+
+def test_expand_rules_placeholder(tmp_path):
+    rules = tmp_path / "rules"; rules.mkdir()
+    expanded = run_analysis._expand_scan_flags(
+        ["--ruleset", "{rules}"], extensions_dir=None, rules_dir=rules,
+    )
+    assert expanded == ["--ruleset", str(rules.resolve())]
+
+
+def test_expand_rules_placeholder_missing_rules_dir_raises():
+    with pytest.raises(ValueError):
+        run_analysis._expand_scan_flags(
+            ["--ruleset", "{rules}"], extensions_dir=None, rules_dir=None,
+        )
+
+
+def test_expand_mixed_placeholders(tmp_path):
+    ext = tmp_path / "ext"; ext.mkdir()
+    rules = tmp_path / "rules"; rules.mkdir()
+    expanded = run_analysis._expand_scan_flags(
+        ["--ruleset", "builtin",
+         "--ruleset", "{rules}",
+         "--ruleset", "{ext}/proj/custom.yaml"],
+        extensions_dir=ext, rules_dir=rules,
+    )
+    assert expanded == [
+        "--ruleset", "builtin",
+        "--ruleset", str(rules.resolve()),
+        "--ruleset", f"{ext.resolve()}/proj/custom.yaml",
+    ]
+
+
+# ── compare_sarif: markdown rendering smoke test ──────────────────────────
 
 def test_render_markdown_smoke():
     md = compare_sarif.render_markdown([
@@ -268,3 +519,63 @@ def test_render_markdown_no_data_one_side():
     ])
     assert "110s (+10s)" in md
     assert "<no data: base>" in md
+
+
+# ── run_analysis: Maven download resilience ─────────────────────────────────
+
+def test_maven_resilient_env_injects_retry_props(monkeypatch):
+    monkeypatch.delenv("MAVEN_OPTS", raising=False)
+    env = run_analysis.maven_resilient_env()
+    opts = env["MAVEN_OPTS"]
+    # Forces a transport whose retry knobs are honoured, and asks for retries.
+    assert "-Dmaven.resolver.transport=wagon" in opts
+    assert "-Dmaven.wagon.http.retryHandler.count=5" in opts
+    # Resolver-native equivalent is present too, for Maven versions that ignore
+    # the wagon override.
+    assert "-Daether.connector.http.retryHandler.count=5" in opts
+
+
+def test_maven_resilient_env_preserves_existing_opts(monkeypatch):
+    monkeypatch.setenv("MAVEN_OPTS", "-Xmx2g")
+    opts = run_analysis.maven_resilient_env()["MAVEN_OPTS"]
+    assert opts.startswith("-Xmx2g ")
+    assert "-Dmaven.wagon.http.retryHandler.count=5" in opts
+
+
+def test_maven_resilient_env_is_a_copy(monkeypatch):
+    monkeypatch.delenv("MAVEN_OPTS", raising=False)
+    run_analysis.maven_resilient_env()
+    # The process environment must not be mutated as a side effect.
+    assert os.environ.get("MAVEN_OPTS") is None
+
+
+# ── generate_matrix: per-project timeout ────────────────────────────────────
+
+def _write_repos(tmp_path, body: str) -> Path:
+    p = tmp_path / "repos.yaml"
+    p.write_text(body)
+    return p
+
+
+def test_matrix_compilation_timeout_default(tmp_path):
+    repos = _write_repos(tmp_path, """
+repositories:
+  - name: demo
+    git: https://example.com/demo.git
+    head: abc
+""")
+    m = generate_matrix.build_matrix(repos, "base", "new", [], None)
+    assert all(c["compilation_timeout"] == generate_matrix.DEFAULT_COMPILATION_TIMEOUT
+               for c in m["include"])
+
+
+def test_matrix_compilation_timeout_override(tmp_path):
+    repos = _write_repos(tmp_path, """
+repositories:
+  - name: slowpoke
+    git: https://example.com/slowpoke.git
+    head: abc
+    compilation-timeout: 2700
+""")
+    m = generate_matrix.build_matrix(repos, "base", "new", [], None)
+    assert {c["compilation_timeout"] for c in m["include"]} == {"2700"}

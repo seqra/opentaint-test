@@ -40,6 +40,7 @@ Full diff detail is available in the `regression-diff` artifact.
 | --------------------------------- | ------------------------------------------------------------- |
 | `.github/workflows/regression.yaml` | Workflow: resolve → probe → build → analyze → compare.     |
 | `projects/repos.yaml`             | Benchmark project list (name, git URL, pinned head, etc.).   |
+| `projects/extensions/`            | Files (passthroughs, approximations, custom rules…) referenced by per-project `scan-flags`. |
 | `scripts/build_opentaint.sh`      | Build analyzer + autobuilder JARs and Go CLI from a checkout.|
 | `scripts/generate_matrix.py`      | Expand `repos.yaml` into a GH Actions matrix.                |
 | `scripts/run_analysis.py`         | Run opentaint `compile` + `scan`, extract analyzer status.   |
@@ -47,6 +48,24 @@ Full diff detail is available in the `regression-diff` artifact.
 | `scripts/cache_key.py`            | Canonical per-project cache key.                             |
 | `tests/`                          | Unit tests for pure-Python logic. Run `python -m pytest tests`. |
 | `test-system-design-plan.md`      | Design document (authoritative spec).                        |
+
+## Per-project fields (`repos.yaml`)
+
+Each entry requires `name`, `git`, and `head` (a pinned commit/tag SHA). These
+optional fields tune one project:
+
+| Field          | Default | Purpose                                                      |
+| -------------- | ------- | ------------------------------------------------------------ |
+| `java-version`        | `17`    | JDK the project is compiled against (`actions/setup-java`).  |
+| `max-memory`          | `8G`    | Analyzer scan memory ceiling.                                |
+| `compilation-timeout` | `1200`  | Wall-clock seconds for the autobuilder compile step (and, less the usual margin, the scan). Raise for large reactors that pull from slow mirrors (e.g. `ruoyi-vue-pro`, `yudao-cloud`). |
+
+The autobuilder's Maven invocation runs with download-retry/timeout system
+properties (`run_analysis.py:maven_resilient_env`) so a transient mirror hiccup
+(e.g. an HTTP 502 from a project-pinned mirror) is retried rather than failing
+the job. A project whose build is deterministically broken at its pinned `head`
+(e.g. an inconsistent dev SNAPSHOT, or a non-Java module that fails to build) is
+commented out with a `QUARANTINED` note explaining the cause.
 
 ## Caching
 
@@ -72,6 +91,69 @@ skipped entirely.
 cd new-test
 python -m pytest tests -v
 ```
+
+## Per-project `opentaint scan` flags
+
+Each entry in `projects/repos.yaml` may declare a `scan-flags` list whose
+tokens are appended verbatim to the `opentaint scan` invocation. Use the
+literal substring `{ext}` to reference files shipped in `projects/extensions/`
+— the runner substitutes it with that directory's absolute path. Since the
+substitution is plain string replacement, the resolved path may point at
+either a **file** or a **directory** — whichever the underlying flag accepts
+(e.g. `--passthrough-approximations` and `--dataflow-approximations` each
+take a single file or a whole directory, and may be repeated):
+
+```yaml
+- name: spring-petclinic
+  git: https://github.com/spring-projects/spring-petclinic.git
+  head: 3e1ce239f4488f20abda24441388a515ea55a815
+  scan-flags:
+    - --passthrough-approximations              # single YAML file
+    - "{ext}/spring-petclinic/passthroughs.yaml"
+    - --passthrough-approximations              # …or repeat with a directory
+    - "{ext}/spring-petclinic/passthroughs"
+    - --dataflow-approximations                 # directory of approximations
+    - "{ext}/spring-petclinic/approximations"
+    - --rule-id
+    - java.taint.sql-injection
+```
+
+Flags reserved by the runner (`--analyzer-jar`, `--project-model`,
+`--output`, `--timeout`, `--max-memory`, `--debug`, `--experimental`) must
+not be repeated here. `--ruleset` is **not** reserved — if `scan-flags`
+contains no `--ruleset`, the runner inserts a default pointing at the
+staged source-tree rule pack at `<build>/rules` (copied from
+`opentaint/rules/ruleset` at build time). Supplying any `--ruleset` value
+puts the project in full control of which rule packs are loaded and in
+what order.
+
+The literal value `builtin` is **rewritten by the runner** to that same
+staged pack — the CLI would otherwise try to fetch the pack from a GitHub
+release that does not exist for in-development opentaint SHAs (and the
+current CLI's URL is malformed, producing a 404 against
+`api.github.com/repos/seqra/seqra/opentaint/…`). Example — stack
+`builtin` with a custom YAML file and a custom rules directory:
+
+```yaml
+scan-flags:
+  - --ruleset
+  - builtin                                          # → <build>/rules (staged)
+  - --ruleset
+  - "{ext}/my-project/rules/sql-injection.yaml"     # custom YAML file
+  - --ruleset
+  - "{ext}/my-project/rules"                        # custom rules directory
+```
+
+Two placeholders are expanded inside `scan-flags`:
+
+* `{ext}`    → absolute path of `projects/extensions/`.
+* `{rules}`  → absolute path of the staged source-tree pack at
+  `<build>/rules`. After the `builtin` rewrite, mostly redundant for
+  `--ruleset` values; still useful for other flags that take a rules
+  directory.
+
+See [`projects/extensions/README.md`](projects/extensions/README.md) for
+the layout convention and the rationale behind the `builtin` rewrite.
 
 ## Open items
 

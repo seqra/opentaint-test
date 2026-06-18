@@ -1,0 +1,25 @@
+# Pass-through approximations for java.time parse/factory methods.
+#
+# Models the dropped (not-yet-approximated) java.time methods listed in the
+# tracking unit java_time-passthrough.yaml. Each carries tainted numeric/string
+# input through to the produced temporal/zone value (arg -> result).
+#
+# OVERRIDE mode: merged with built-ins at the rule level (per-method, additive).
+passThrough:
+  # Duration.ofMillis(millis) -> Duration built from the tainted numeric value
+  - function: java.time.Duration#ofMillis
+    copy:
+      - from: arg(0)
+        to: result
+
+  # ZoneId.of(zoneId) -> ZoneId parsed from the tainted string
+  - function: java.time.ZoneId#of
+    copy:
+      - from: arg(0)
+        to: result
+
+  # DateTimeFormatter.parse(text) -> TemporalAccessor parsed from the tainted text
+  - function: java.time.format.DateTimeFormatter#parse
+    copy:
+      - from: arg(0)
+        to: result

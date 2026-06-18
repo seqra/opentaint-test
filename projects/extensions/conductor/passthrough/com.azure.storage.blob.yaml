@@ -1,0 +1,43 @@
+# Pass-through approximations for com.azure.storage.blob client methods.
+#
+# Models the dropped (not-yet-approximated) Azure blob client methods listed in
+# the tracking unit com_azure_storage_blob-passthrough.yaml. Each is a simple
+# copy from the tainted blob name / payload argument into the produced value
+# (or back onto the receiver/blob).
+#
+# OVERRIDE mode: merged with built-ins at the rule level (per-method, additive).
+passThrough:
+  # BlobContainerClient.getBlobClient(blobName) -> BlobClient for the tainted
+  # blob name; the name flows into the returned client and is held by the
+  # container receiver.
+  - function: com.azure.storage.blob.BlobContainerClient#getBlobClient
+    copy:
+      - from: arg(0)
+        to: result
+      - from: arg(0)
+        to: this
+
+  # BlobClientBase.download(outputStream) -> blob contents (tainted blob) are
+  # written into the supplied output stream argument.
+  - function: com.azure.storage.blob.specialized.BlobClientBase#download
+    copy:
+      - from: this
+        to: arg(0)
+
+  # BlockBlobClient.commitBlockList(blockIds) -> the tainted block list is
+  # committed into the blob; carried onto the receiver and the response.
+  - function: com.azure.storage.blob.specialized.BlockBlobClient#commitBlockList
+    copy:
+      - from: arg(0)
+        to: this
+      - from: arg(0)
+        to: result
+
+  # BlockBlobClient.uploadWithResponse(payload, ...) -> the tainted payload
+  # stream is uploaded into the blob; carried onto the receiver and the response.
+  - function: com.azure.storage.blob.specialized.BlockBlobClient#uploadWithResponse
+    copy:
+      - from: arg(0)
+        to: this
+      - from: arg(0)
+        to: result

@@ -1,0 +1,53 @@
+passThrough:
+- function: org.xmlpull.v1.XmlPullParserException#<init>
+  copy:
+  - from: arg(0)
+    to: this
+  - from:
+    - arg(1)
+    - .org.xmlpull.v1.XmlPullParser#Input#java.lang.Object
+    to: this
+  - from: arg(2)
+    to: this
+- function: org.xmlpull.v1.XmlPullParser#getAttributeValue
+  copy:
+  - from:
+    - this
+    - .org.xmlpull.v1.XmlPullParser#Input#java.lang.Object
+    to: result
+- function: org.xmlpull.v1.XmlPullParser#getEventType
+  copy:
+  - from:
+    - this
+    - .org.xmlpull.v1.XmlPullParser#Input#java.lang.Object
+    to: result
+- function: org.xmlpull.v1.XmlPullParser#getName
+  copy:
+  - from:
+    - this
+    - .org.xmlpull.v1.XmlPullParser#Input#java.lang.Object
+    to: result
+- function: org.xmlpull.v1.XmlPullParser#getText
+  copy:
+  - from:
+    - this
+    - .org.xmlpull.v1.XmlPullParser#Input#java.lang.Object
+    to: result
+- function: org.xmlpull.v1.XmlPullParser#next
+  copy:
+  - from:
+    - this
+    - .org.xmlpull.v1.XmlPullParser#Input#java.lang.Object
+    to: result
+- function: org.xmlpull.v1.XmlPullParser#nextText
+  copy:
+  - from:
+    - this
+    - .org.xmlpull.v1.XmlPullParser#Input#java.lang.Object
+    to: result
+- function: org.xmlpull.v1.XmlPullParser#setInput
+  copy:
+  - from: arg(0)
+    to:
+    - this
+    - .org.xmlpull.v1.XmlPullParser#Input#java.lang.Object

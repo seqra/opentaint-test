@@ -1,0 +1,340 @@
+passThrough:
+- function: java.util.ArrayList#addAll
+  copy:
+  - from: arg(0)
+    to:
+    - this
+    - .java.lang.Iterable#Element#java.lang.Object
+  - from:
+    - arg(0)
+    - .java.lang.Iterable#Element#java.lang.Object
+    to:
+    - this
+    - .java.lang.Iterable#Element#java.lang.Object
+  - from: this
+    to: result
+  - from:
+    - this
+    - .java.lang.Iterable#Element#java.lang.Object
+    to: result
+  - from: arg(0)
+    to: result
+  - from:
+    - arg(0)
+    - .java.lang.Iterable#Element#java.lang.Object
+    to: result
+- function: java.util.ArrayList#contains
+  copy:
+  - from: this
+    to: result
+  - from:
+    - this
+    - .java.lang.Iterable#Element#java.lang.Object
+    to: result
+  - from: arg(0)
+    to: result
+- function: java.util.List#contains
+  copy:
+  - from: this
+    to: result
+  - from:
+    - this
+    - .java.lang.Iterable#Element#java.lang.Object
+    to: result
+  - from: arg(0)
+    to: result
+- function: java.util.ArrayList#clear
+  copy:
+  - from: this
+    to: this
+- function: java.util.BitSet#get
+  copy:
+  - from: this
+    to: result
+  - from: arg(0)
+    to: result
+- function:
+    package: java.util
+    class: ArrayList
+    name: size
+  copy:
+  - from: this
+    to: result
+  - from:
+    - this
+    - .java.lang.Iterable#Element#java.lang.Object
+    to: result
+- function: java.util.ArrayList#removeAll
+  copy:
+  - from: this
+    to: this
+  - from:
+    - this
+    - .java.lang.Iterable#Element#java.lang.Object
+    to:
+    - this
+    - .java.lang.Iterable#Element#java.lang.Object
+  - from: this
+    to: result
+  - from:
+    - this
+    - .java.lang.Iterable#Element#java.lang.Object
+    to: result
+  - from: arg(0)
+    to: result
+  - from:
+    - arg(0)
+    - .java.lang.Iterable#Element#java.lang.Object
+    to: result
+- function: java.util.List#size
+  copy:
+  - from: this
+    to: result
+  - from:
+    - this
+    - .java.lang.Iterable#Element#java.lang.Object
+    to: result
+- function: java.util.ArrayList#isEmpty
+  copy:
+  - from: this
+    to: result
+  - from:
+    - this
+    - .java.lang.Iterable#Element#java.lang.Object
+    to: result
+- function: java.util.HashMap#putAll
+  copy:
+  - from: arg(0)
+    to: this
+  - from: arg(0)
+    to:
+    - this
+    - .java.util.Map#MapKey#java.lang.Object
+  - from: arg(0)
+    to:
+    - this
+    - .java.util.Map#MapValue#java.lang.Object
+  - from:
+    - arg(0)
+    - .java.util.Map#MapKey#java.lang.Object
+    to:
+    - this
+    - .java.util.Map#MapKey#java.lang.Object
+  - from:
+    - arg(0)
+    - .java.util.Map#MapValue#java.lang.Object
+    to:
+    - this
+    - .java.util.Map#MapValue#java.lang.Object
+- function: java.util.Set#isEmpty
+  copy:
+  - from: this
+    to: result
+  - from:
+    - this
+    - .java.lang.Iterable#Element#java.lang.Object
+    to: result
+- function: java.util.Set#iterator
+  copy:
+  - from: this
+    to: result
+  - from:
+    - this
+    - .java.lang.Iterable#Element#java.lang.Object
+    to: result
+  - from:
+    - this
+    - .java.lang.Iterable#Element#java.lang.Object
+    to:
+    - result
+    - .java.lang.Iterable#Element#java.lang.Object
+- function: java.util.ArrayList#iterator
+  copy:
+  - from: this
+    to: result
+  - from:
+    - this
+    - .java.lang.Iterable#Element#java.lang.Object
+    to: result
+  - from:
+    - this
+    - .java.lang.Iterable#Element#java.lang.Object
+    to:
+    - result
+    - .java.lang.Iterable#Element#java.lang.Object
+- function: java.util.List#iterator
+  copy:
+  - from: this
+    to: result
+  - from:
+    - this
+    - .java.lang.Iterable#Element#java.lang.Object
+    to: result
+  - from:
+    - this
+    - .java.lang.Iterable#Element#java.lang.Object
+    to:
+    - result
+    - .java.lang.Iterable#Element#java.lang.Object
+- function: java.util.Collection#size
+  copy:
+  - from: this
+    to: result
+  - from:
+    - this
+    - .java.lang.Iterable#Element#java.lang.Object
+    to: result
+- function: java.util.HashMap#size
+  copy:
+  - from: this
+    to: result
+  - from:
+    - this
+    - .java.util.Map#MapKey#java.lang.Object
+    to: result
+  - from:
+    - this
+    - .java.util.Map#MapValue#java.lang.Object
+    to: result
+- function: java.util.Map#entrySet
+  copy:
+  - from: this
+    to: result
+  - from:
+    - this
+    - .java.util.Map#MapKey#java.lang.Object
+    to: result
+  - from:
+    - this
+    - .java.util.Map#MapKey#java.lang.Object
+    to:
+    - result
+    - .java.lang.Iterable#Element#java.lang.Object
+  - from:
+    - this
+    - .java.util.Map#MapValue#java.lang.Object
+    to: result
+  - from:
+    - this
+    - .java.util.Map#MapValue#java.lang.Object
+    to:
+    - result
+    - .java.lang.Iterable#Element#java.lang.Object
+- function: java.util.Collections#reverse
+  copy:
+  - from: arg(0)
+    to: arg(0)
+  - from:
+    - arg(0)
+    - .java.lang.Iterable#Element#java.lang.Object
+    to:
+    - arg(0)
+    - .java.lang.Iterable#Element#java.lang.Object
+- function: java.util.HashMap#put
+  copy:
+  - from: arg(0)
+    to:
+    - this
+    - .java.util.Map#MapKey#java.lang.Object
+  - from: arg(1)
+    to:
+    - this
+    - .java.util.Map#MapValue#java.lang.Object
+  - from: this
+    to: result
+  - from:
+    - this
+    - .java.util.Map#MapValue#java.lang.Object
+    to: result
+- function: java.util.Hashtable#get
+  copy:
+  - from: this
+    to: result
+  - from: arg(0)
+    to: result
+  - from:
+    - this
+    - .java.util.Map#MapKey#java.lang.Object
+    to: result
+  - from:
+    - this
+    - .java.util.Map#MapValue#java.lang.Object
+    to: result
+- function: java.util.Map#getOrDefault
+  copy:
+  - from: this
+    to: result
+  - from: arg(0)
+    to: result
+  - from: arg(1)
+    to: result
+  - from:
+    - this
+    - .java.util.Map#MapKey#java.lang.Object
+    to: result
+  - from:
+    - this
+    - .java.util.Map#MapValue#java.lang.Object
+    to: result
+- function: java.util.Map#isEmpty
+  copy:
+  - from: this
+    to: result
+  - from:
+    - this
+    - .java.util.Map#MapKey#java.lang.Object
+    to: result
+  - from:
+    - this
+    - .java.util.Map#MapValue#java.lang.Object
+    to: result
+- function: java.util.Map#values
+  copy:
+  - from: this
+    to: result
+  - from:
+    - this
+    - .java.util.Map#MapValue#java.lang.Object
+    to: result
+  - from:
+    - this
+    - .java.util.Map#MapValue#java.lang.Object
+    to:
+    - result
+    - .java.lang.Iterable#Element#java.lang.Object
+- function: java.util.Set#contains
+  copy:
+  - from: this
+    to: result
+  - from:
+    - this
+    - .java.lang.Iterable#Element#java.lang.Object
+    to: result
+  - from: arg(0)
+    to: result
+- function: java.util.Arrays#copyOf
+  copy:
+  - from: arg(0)
+    to: result
+  - from:
+    - arg(0)
+    - '[*]'
+    to:
+    - result
+    - '[*]'
+  - from: arg(1)
+    to: result
+- function: java.util.Map#keySet
+  copy:
+  - from: this
+    to: result
+  - from:
+    - this
+    - .java.util.Map#MapKey#java.lang.Object
+    to: result
+  - from:
+    - this
+    - .java.util.Map#MapKey#java.lang.Object
+    to:
+    - result
+    - .java.lang.Iterable#Element#java.lang.Object

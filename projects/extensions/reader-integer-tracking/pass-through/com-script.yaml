@@ -1,0 +1,7 @@
+passThrough:
+- function: com.script.AbstractScriptEngine#eval
+  copy:
+  - from: arg(0)
+    to: result
+  - from: arg(1)
+    to: result

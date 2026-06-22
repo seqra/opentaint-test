@@ -1,0 +1,7 @@
+passThrough:
+- function: kotlin.comparisons.ComparisonsKt__ComparisonsKt#compareValues
+  copy:
+  - from: arg(0)
+    to: result
+  - from: arg(1)
+    to: result

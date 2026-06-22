@@ -1,0 +1,235 @@
+passThrough:
+- function: java.io.File#mkdirs
+  copy:
+  - from: this
+    to: result
+- function: java.io.File#delete
+  copy:
+  - from: this
+    to: result
+- function: java.io.File#createNewFile
+  copy:
+  - from: this
+    to: result
+- function: java.io.File#exists
+  copy:
+  - from: this
+    to: result
+- function: java.io.File#isDirectory
+  copy:
+  - from: this
+    to: result
+- function: java.io.File#isFile
+  copy:
+  - from: this
+    to: result
+- function: java.io.File#getName
+  copy:
+  - from: this
+    to: result
+- function: java.io.File#toString
+  copy:
+  - from: this
+    to: result
+- function: java.io.File#lastModified
+  copy:
+  - from: this
+    to: result
+  - from:
+    - this
+    - .java.io.File#LastModified#java.lang.Object
+    to: result
+  - from:
+    - this
+    - .java.io.File#Content#java.lang.Object
+    to: result
+- function: java.io.File#length
+  copy:
+  - from: this
+    to: result
+  - from:
+    - this
+    - .java.io.File#Content#java.lang.Object
+    to: result
+- function: java.io.File#setLastModified
+  copy:
+  - from: this
+    to: result
+  - from: arg(0)
+    to:
+    - this
+    - .java.io.File#LastModified#java.lang.Object
+- function: java.io.FileInputStream#<init>
+  copy:
+  - from: arg(0)
+    to: this
+  - from:
+    - arg(0)
+    - .java.io.File#Content#java.lang.Object
+    to: this
+  - from:
+    - arg(0)
+    - .java.io.File#Content#java.lang.Object
+    to:
+    - this
+    - .java.io.InputStream#Content#java.lang.Object
+- function: java.io.FileOutputStream#<init>
+  copy:
+  - from: arg(0)
+    to: this
+  - from: arg(0)
+    to:
+    - this
+    - .java.io.FileOutputStream#File#java.lang.Object
+- function: java.io.FileOutputStream#write
+  copy:
+  - from: this
+    to: this
+  - from: arg(0)
+    to: this
+  - from:
+    - arg(0)
+    - '[*]'
+    to: this
+  - from: arg(0)
+    to:
+    - this
+    - .java.io.FileOutputStream#Content#java.lang.Object
+  - from:
+    - arg(0)
+    - '[*]'
+    to:
+    - this
+    - .java.io.FileOutputStream#Content#java.lang.Object
+  - from: arg(1)
+    to:
+    - this
+    - .java.io.FileOutputStream#Content#java.lang.Object
+  - from: arg(2)
+    to:
+    - this
+    - .java.io.FileOutputStream#Content#java.lang.Object
+- function: java.io.File#renameTo
+  copy:
+  - from: this
+    to: result
+  - from: arg(0)
+    to: result
+- function: java.io.FilterInputStream#<init>
+  copy:
+  - from: arg(0)
+    to: this
+  - from: arg(0)
+    to:
+    - this
+    - .java.io.InputStream#Content#java.lang.Object
+  - from:
+    - arg(0)
+    - .java.io.InputStream#Content#java.lang.Object
+    to: this
+  - from:
+    - arg(0)
+    - .java.io.InputStream#Content#java.lang.Object
+    to:
+    - this
+    - .java.io.InputStream#Content#java.lang.Object
+- function: java.io.BufferedInputStream#<init>
+  copy:
+  - from: arg(0)
+    to: this
+  - from: arg(0)
+    to:
+    - this
+    - .java.io.InputStream#Content#java.lang.Object
+  - from:
+    - arg(0)
+    - .java.io.InputStream#Content#java.lang.Object
+    to: this
+  - from:
+    - arg(0)
+    - .java.io.InputStream#Content#java.lang.Object
+    to:
+    - this
+    - .java.io.InputStream#Content#java.lang.Object
+- function: java.io.BufferedReader#<init>
+  copy:
+  - from: arg(0)
+    to: this
+  - from: arg(0)
+    to:
+    - this
+    - .java.io.Reader#Content#java.lang.Object
+  - from:
+    - arg(0)
+    - .java.io.Reader#Content#java.lang.Object
+    to: this
+  - from:
+    - arg(0)
+    - .java.io.Reader#Content#java.lang.Object
+    to:
+    - this
+    - .java.io.Reader#Content#java.lang.Object
+- function: java.io.InputStreamReader#<init>
+  copy:
+  - from: arg(0)
+    to: this
+  - from: arg(0)
+    to:
+    - this
+    - .java.io.Reader#Content#java.lang.Object
+  - from:
+    - arg(0)
+    - .java.io.InputStream#Content#java.lang.Object
+    to: this
+  - from:
+    - arg(0)
+    - .java.io.InputStream#Content#java.lang.Object
+    to:
+    - this
+    - .java.io.Reader#Content#java.lang.Object
+- function: java.io.ByteArrayOutputStream#write
+  copy:
+  - from: this
+    to: this
+  - from: arg(0)
+    to: this
+  - from:
+    - arg(0)
+    - '[*]'
+    to: this
+  - from: arg(0)
+    to:
+    - this
+    - .java.io.OutputStream#Content#java.lang.Object
+  - from:
+    - arg(0)
+    - '[*]'
+    to:
+    - this
+    - .java.io.OutputStream#Content#java.lang.Object
+  - from: arg(0)
+    to:
+    - this
+    - .java.io.ByteArrayOutputStream#Content#java.lang.Object
+  - from:
+    - arg(0)
+    - '[*]'
+    to:
+    - this
+    - .java.io.ByteArrayOutputStream#Content#java.lang.Object
+  - from: arg(1)
+    to:
+    - this
+    - .java.io.OutputStream#Content#java.lang.Object
+  - from: arg(1)
+    to:
+    - this
+    - .java.io.ByteArrayOutputStream#Content#java.lang.Object
+  - from: arg(2)
+    to:
+    - this
+    - .java.io.OutputStream#Content#java.lang.Object
+  - from: arg(2)
+    to:
+    - this
+    - .java.io.ByteArrayOutputStream#Content#java.lang.Object

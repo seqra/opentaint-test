@@ -1,0 +1,169 @@
+passThrough:
+- function: io.vertx.core.json.JsonObject#mapTo
+  copy:
+  - from: this
+    to: result
+  - from:
+    - this
+    - .java.util.Map#MapKey#java.lang.Object
+    to: result
+  - from:
+    - this
+    - .java.util.Map#MapValue#java.lang.Object
+    to: result
+- function: io.vertx.core.json.JsonArray#size
+  copy:
+  - from: this
+    to: result
+  - from:
+    - this
+    - .java.lang.Iterable#Element#java.lang.Object
+    to: result
+- function: io.vertx.core.json.JsonArray#add
+  copy:
+  - from: arg(0)
+    to: this
+  - from: arg(0)
+    to:
+    - this
+    - .java.lang.Iterable#Element#java.lang.Object
+  - from: this
+    to: result
+  - from:
+    - this
+    - .java.lang.Iterable#Element#java.lang.Object
+    to: result
+  - from:
+    - this
+    - .java.lang.Iterable#Element#java.lang.Object
+    to:
+    - result
+    - .java.lang.Iterable#Element#java.lang.Object
+  - from: arg(0)
+    to: result
+  - from: arg(0)
+    to:
+    - result
+    - .java.lang.Iterable#Element#java.lang.Object
+- function: io.vertx.core.json.JsonArray#<init>
+  copy:
+  - from: arg(0)
+    to: this
+  - from: arg(0)
+    to:
+    - this
+    - .java.lang.Iterable#Element#java.lang.Object
+  - from:
+    - arg(0)
+    - .java.lang.Iterable#Element#java.lang.Object
+    to:
+    - this
+    - .java.lang.Iterable#Element#java.lang.Object
+- function: io.vertx.core.json.JsonObject#toString
+  copy:
+  - from: this
+    to: result
+  - from:
+    - this
+    - .java.util.Map#MapKey#java.lang.Object
+    to: result
+  - from:
+    - this
+    - .java.util.Map#MapValue#java.lang.Object
+    to: result
+- function: io.vertx.core.json.JsonObject#<init>
+  copy:
+  - from: arg(0)
+    to: this
+  - from: arg(0)
+    to:
+    - this
+    - .java.util.Map#MapKey#java.lang.Object
+  - from: arg(0)
+    to:
+    - this
+    - .java.util.Map#MapValue#java.lang.Object
+  - from:
+    - arg(0)
+    - .java.util.Map#MapKey#java.lang.Object
+    to:
+    - this
+    - .java.util.Map#MapKey#java.lang.Object
+  - from:
+    - arg(0)
+    - .java.util.Map#MapValue#java.lang.Object
+    to:
+    - this
+    - .java.util.Map#MapValue#java.lang.Object
+- function: io.vertx.core.json.JsonObject#mapFrom
+  copy:
+  - from: arg(0)
+    to: result
+  - from: arg(0)
+    to:
+    - result
+    - .java.util.Map#MapKey#java.lang.Object
+  - from: arg(0)
+    to:
+    - result
+    - .java.util.Map#MapValue#java.lang.Object
+  - from:
+    - arg(0)
+    - .java.util.Map#MapKey#java.lang.Object
+    to:
+    - result
+    - .java.util.Map#MapKey#java.lang.Object
+  - from:
+    - arg(0)
+    - .java.util.Map#MapValue#java.lang.Object
+    to:
+    - result
+    - .java.util.Map#MapValue#java.lang.Object
+- function: io.vertx.core.json.JsonObject#put
+  copy:
+  - from: this
+    to: result
+  - from:
+    - this
+    - .java.util.Map#MapKey#java.lang.Object
+    to: result
+  - from:
+    - this
+    - .java.util.Map#MapKey#java.lang.Object
+    to:
+    - result
+    - .java.util.Map#MapKey#java.lang.Object
+  - from:
+    - this
+    - .java.util.Map#MapValue#java.lang.Object
+    to: result
+  - from:
+    - this
+    - .java.util.Map#MapValue#java.lang.Object
+    to:
+    - result
+    - .java.util.Map#MapValue#java.lang.Object
+  - from: arg(0)
+    to: this
+  - from: arg(0)
+    to:
+    - this
+    - .java.util.Map#MapKey#java.lang.Object
+  - from: arg(0)
+    to: result
+  - from: arg(0)
+    to:
+    - result
+    - .java.util.Map#MapKey#java.lang.Object
+  - from: arg(1)
+    to: this
+  - from: arg(1)
+    to:
+    - this
+    - .java.util.Map#MapValue#java.lang.Object
+  - from: arg(1)
+    to: result
+  - from: arg(1)
+    to:
+    - result
+    - .java.util.Map#MapValue#java.lang.Object

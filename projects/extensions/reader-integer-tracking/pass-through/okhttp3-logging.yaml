@@ -1,0 +1,5 @@
+passThrough:
+- function: okhttp3.logging.HttpLoggingInterceptor#setLevel
+  copy:
+  - from: this
+    to: result

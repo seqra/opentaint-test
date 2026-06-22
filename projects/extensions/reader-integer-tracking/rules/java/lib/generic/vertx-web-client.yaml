@@ -1,0 +1,37 @@
+rules:
+  - id: java-vertx-web-client-response-data-source
+    options:
+      lib: true
+    severity: NOTE
+    message: Vert.x Web Client response data is untrusted data
+    metadata:
+      short-description: Vert.x Web Client response body/header source
+    languages:
+      - java
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $UNTRUSTED = (io.vertx.ext.web.client.HttpResponse $RESPONSE).bodyAsBuffer();
+          - pattern: |
+              $UNTRUSTED = (io.vertx.ext.web.client.HttpResponse $RESPONSE).headers();
+
+  - id: java-vertx-web-client-get-abs-ssrf-sink
+    options:
+      lib: true
+    severity: NOTE
+    message: Vert.x Web Client sends a request to a tainted absolute URL
+    metadata:
+      short-description: Vert.x Web Client getAbs SSRF sink
+    languages:
+      - java
+    mode: taint
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: |
+                  (io.vertx.ext.web.client.WebClient $CLIENT).getAbs($UNTRUSTED).send(...);
+              - pattern: |
+                  $REQUEST = (io.vertx.ext.web.client.WebClient $CLIENT).getAbs($UNTRUSTED);
+                  ...
+                  $REQUEST.send(...);
+          - focus-metavariable: $UNTRUSTED

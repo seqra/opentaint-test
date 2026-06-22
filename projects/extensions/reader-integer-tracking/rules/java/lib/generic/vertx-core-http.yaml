@@ -1,0 +1,32 @@
+rules:
+  - id: java-vertx-core-http-request-absolute-uri-source
+    options:
+      lib: true
+    severity: NOTE
+    message: Vert.x HTTP request absolute URI is untrusted data
+    metadata:
+      short-description: Vert.x HTTP request absolute URI source
+    languages:
+      - java
+    patterns:
+      - pattern: |
+          $UNTRUSTED = (io.vertx.core.http.HttpServerRequest $REQ).absoluteURI();
+
+  - id: java-vertx-core-http-response-write-sink
+    options:
+      lib: true
+    severity: NOTE
+    message: Vert.x HTTP response write
+    metadata:
+      short-description: Vert.x HTTP response header/body sink
+    languages:
+      - java
+    mode: taint
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: (io.vertx.core.http.HttpServerResponse $RES).putHeader($UNTRUSTED, ...)
+              - pattern: (io.vertx.core.http.HttpServerResponse $RES).putHeader(..., $UNTRUSTED)
+              - pattern: (io.vertx.core.http.HttpServerResponse $RES).end($UNTRUSTED)
+              - pattern: (io.vertx.core.http.HttpServerResponse $RES).end($UNTRUSTED, ...)
+          - focus-metavariable: $UNTRUSTED

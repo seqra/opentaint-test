@@ -1,0 +1,81 @@
+passThrough:
+- function: io.vertx.ext.web.FileUpload#uploadedFileName
+  copy:
+  - from: this
+    to: result
+- function: io.vertx.ext.web.FileUpload#fileName
+  copy:
+  - from: this
+    to: result
+- function: io.vertx.ext.web.RoutingContext#fileUploads
+  copy:
+  - from: this
+    to: result
+  - from: this
+    to:
+    - result
+    - .java.lang.Iterable#Element#java.lang.Object
+- function: io.vertx.ext.web.RoutingContext#put
+  copy:
+  - from: this
+    to: result
+  - from:
+    - this
+    - .io.vertx.ext.web.RoutingContext#Value#java.lang.Object
+    to:
+    - result
+    - .io.vertx.ext.web.RoutingContext#Value#java.lang.Object
+  - from: arg(1)
+    to: this
+  - from: arg(1)
+    to: result
+  - from: arg(1)
+    to:
+    - this
+    - .io.vertx.ext.web.RoutingContext#Value#java.lang.Object
+  - from: arg(1)
+    to:
+    - result
+    - .io.vertx.ext.web.RoutingContext#Value#java.lang.Object
+- function: io.vertx.ext.web.RoutingContext#queryParam
+  copy:
+  - from: this
+    to: result
+  - from: this
+    to:
+    - result
+    - .java.lang.Iterable#Element#java.lang.Object
+- function: io.vertx.ext.web.RoutingContext#request
+  copy:
+  - from: this
+    to: result
+- function: io.vertx.ext.web.RoutingContext#response
+  copy:
+  - from: this
+    to: result
+- function: io.vertx.ext.web.RoutingContext#session
+  copy:
+  - from: this
+    to: result
+- function: io.vertx.ext.web.Session#put
+  copy:
+  - from: this
+    to: result
+  - from:
+    - this
+    - .io.vertx.ext.web.Session#Value#java.lang.Object
+    to:
+    - result
+    - .io.vertx.ext.web.Session#Value#java.lang.Object
+  - from: arg(1)
+    to: this
+  - from: arg(1)
+    to: result
+  - from: arg(1)
+    to:
+    - this
+    - .io.vertx.ext.web.Session#Value#java.lang.Object
+  - from: arg(1)
+    to:
+    - result
+    - .io.vertx.ext.web.Session#Value#java.lang.Object

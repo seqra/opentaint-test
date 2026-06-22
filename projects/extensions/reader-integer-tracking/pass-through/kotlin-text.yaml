@@ -1,0 +1,237 @@
+passThrough:
+- function: kotlin.text.Regex#split
+  copy:
+  - from: this
+    to: result
+  - from: this
+    to:
+    - result
+    - .java.lang.Iterable#Element#java.lang.Object
+  - from: arg(0)
+    to: result
+  - from: arg(0)
+    to:
+    - result
+    - .java.lang.Iterable#Element#java.lang.Object
+- function: kotlin.text.StringsKt__StringsKt#lastIndexOf$default
+  copy:
+  - from: arg(0)
+    to: result
+  - from: arg(1)
+    to: result
+- function: kotlin.text.Regex#replaceFirst
+  copy:
+  - from: this
+    to: result
+  - from: arg(0)
+    to: result
+  - from: arg(1)
+    to: result
+- function: kotlin.text.StringsKt__StringsKt#contains$default
+  copy:
+  - from: arg(0)
+    to: result
+  - from: arg(1)
+    to: result
+- function: kotlin.text.StringsKt__StringsJVMKt#isBlank
+  copy:
+  - from: arg(0)
+    to: result
+- function: kotlin.text.Regex#replace
+  copy:
+  - from: this
+    to: result
+  - from: arg(0)
+    to: result
+  - from: arg(1)
+    to: result
+- function: kotlin.text.StringsKt__StringsJVMKt#startsWith
+  copy:
+  - from: arg(0)
+    to: result
+  - from: arg(1)
+    to: result
+- function: kotlin.text.StringsKt__StringsJVMKt#endsWith$default
+  copy:
+  - from: arg(0)
+    to: result
+  - from: arg(1)
+    to: result
+- function: kotlin.text.StringsKt__StringsJVMKt#equals
+  copy:
+  - from: arg(0)
+    to: result
+  - from: arg(1)
+    to: result
+- function: kotlin.text.StringsKt__StringsJVMKt#startsWith$default
+  copy:
+  - from: arg(0)
+    to: result
+  - from: arg(1)
+    to: result
+- function: kotlin.text.StringsKt__StringsKt#indexOf$default
+  copy:
+  - from: arg(0)
+    to: result
+  - from: arg(1)
+    to: result
+- function: kotlin.text.StringsKt__StringsKt#getLastIndex
+  copy:
+  - from: arg(0)
+    to: result
+- function: kotlin.text.Regex#<init>
+  copy:
+  - from: arg(0)
+    to: this
+- function: kotlin.text.StringsKt__StringsKt#contains
+  copy:
+  - from: arg(0)
+    to: result
+  - from: arg(1)
+    to: result
+- function: kotlin.text.Regex#matches
+  copy:
+  - from: arg(0)
+    to: result
+  - from: this
+    to: result
+- function: kotlin.text.Regex#find$default
+  copy:
+  - from: arg(0)
+    to: result
+  - from: arg(1)
+    to: result
+- function: kotlin.text.Regex#findAll$default
+  copy:
+  - from: arg(0)
+    to: result
+  - from: arg(0)
+    to:
+    - result
+    - .java.lang.Iterable#Element#java.lang.Object
+  - from: arg(1)
+    to: result
+  - from: arg(1)
+    to:
+    - result
+    - .java.lang.Iterable#Element#java.lang.Object
+- function: kotlin.text.StringsKt__AppendableKt#append
+  copy:
+  - from: arg(0)
+    to: result
+  - from: arg(1)
+    to: arg(0)
+  - from: arg(1)
+    to: result
+  - from:
+    - arg(1)
+    - '[*]'
+    to: arg(0)
+  - from:
+    - arg(1)
+    - '[*]'
+    to: result
+- function: kotlin.text.StringsKt__StringsJVMKt#endsWith
+  copy:
+  - from: arg(0)
+    to: result
+  - from: arg(1)
+    to: result
+- function: kotlin.text.StringsKt__StringsJVMKt#equals$default
+  copy:
+  - from: arg(0)
+    to: result
+  - from: arg(1)
+    to: result
+- function: kotlin.text.StringsKt__StringsJVMKt#regionMatches$default
+  copy:
+  - from: arg(0)
+    to: result
+  - from: arg(2)
+    to: result
+- function: kotlin.text.StringsKt___StringsKt#last
+  copy:
+  - from: arg(0)
+    to: result
+- function: kotlin.text.StringsKt__StringsJVMKt#compareTo
+  copy:
+  - from: arg(0)
+    to: result
+  - from: arg(1)
+    to: result
+- function: kotlin.text.StringsKt__StringsJVMKt#replaceFirst$default
+  copy:
+  - from: arg(0)
+    to: result
+  - from: arg(1)
+    to: result
+  - from: arg(2)
+    to: result
+- function: kotlin.text.StringsKt__StringsJVMKt#replace$default
+  copy:
+  - from: arg(0)
+    to: result
+  - from: arg(1)
+    to: result
+  - from: arg(2)
+    to: result
+- function: kotlin.text.StringsKt__StringsKt#substringAfter$default
+  copy:
+  - from: arg(0)
+    to: result
+  - from: arg(1)
+    to: result
+  - from: arg(2)
+    to: result
+- function: kotlin.text.StringsKt__StringsKt#substringBefore$default
+  copy:
+  - from: arg(0)
+    to: result
+  - from: arg(1)
+    to: result
+  - from: arg(2)
+    to: result
+- function: kotlin.text.StringsKt__StringsKt#substringAfterLast$default
+  copy:
+  - from: arg(0)
+    to: result
+  - from: arg(1)
+    to: result
+  - from: arg(2)
+    to: result
+- function: kotlin.text.StringsKt__StringsKt#substringBeforeLast$default
+  copy:
+  - from: arg(0)
+    to: result
+  - from: arg(1)
+    to: result
+  - from: arg(2)
+    to: result
+- function: kotlin.text.StringsKt__StringsKt#trim
+  copy:
+  - from: arg(0)
+    to: result
+- function: kotlin.text.StringsKt__StringsKt#split
+  copy:
+  - from: arg(0)
+    to: result
+  - from: arg(0)
+    to:
+    - result
+    - .java.lang.Iterable#Element#java.lang.Object
+- function: kotlin.text.StringsKt__StringsKt#split$default
+  copy:
+  - from: arg(0)
+    to: result
+  - from: arg(0)
+    to:
+    - result
+    - .java.lang.Iterable#Element#java.lang.Object
+- function: kotlin.text.MatchResult#getGroupValues
+  copy:
+  - from: this
+    to: result
+  - from: this
+    to:
+    - result
+    - .java.lang.Iterable#Element#java.lang.Object

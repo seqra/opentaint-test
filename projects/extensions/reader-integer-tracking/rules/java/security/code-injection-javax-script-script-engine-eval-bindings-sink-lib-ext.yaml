@@ -1,0 +1,38 @@
+rules:
+  - id: code-injection-javax-script-script-engine-eval-bindings-sink-lib-ext
+    severity: ERROR
+    message: Untrusted data reaches a code injection sink
+    metadata:
+      cwe: CWE-94
+      short-description: Code injection via untrusted input
+    languages: [java]
+    mode: join
+    join:
+      refs:
+        - rule: java/lib/generic/servlet-untrusted-data-source.yaml#java-servlet-untrusted-data-source
+          as: servlet-untrusted-data
+        - rule: java/lib/spring/untrusted-data-source.yaml#spring-untrusted-data-source
+          as: spring-untrusted-data
+        - rule: java/lib/generic/retrofit2.yaml#retrofit2-response-body-untrusted-data-source
+          as: retrofit2-source
+        - rule: java/lib/generic/vertx-web-client.yaml#java-vertx-web-client-response-data-source
+          as: vertx-web-client-source
+        - rule: java/lib/generic/vertx-core-http.yaml#java-vertx-core-http-request-absolute-uri-source
+          as: vertx-core-http-source
+        - rule: java/lib/generic/gson-untrusted-data-source.yaml#gson-from-json-string-type-source
+          as: gson-source
+        - rule: java/lib/generic/okhttp3.yaml#okhttp3-response-body-bytes-source
+          as: okhttp3-source
+        - rule: java/lib/generic/vertx-web-untrusted-data-source.yaml#io-vertx-ext-web-untrusted-data-source
+          as: vertx-web-source
+        - rule: java/lib/generic/javax-script-sinks.yaml#javax-script-script-engine-eval-bindings-sink
+          as: sink
+      on:
+        - 'servlet-untrusted-data.$UNTRUSTED -> sink.$UNTRUSTED'
+        - 'spring-untrusted-data.$UNTRUSTED -> sink.$UNTRUSTED'
+        - 'retrofit2-source.$UNTRUSTED -> sink.$UNTRUSTED'
+        - 'vertx-web-client-source.$UNTRUSTED -> sink.$UNTRUSTED'
+        - 'vertx-core-http-source.$UNTRUSTED -> sink.$UNTRUSTED'
+        - 'gson-source.$UNTRUSTED -> sink.$UNTRUSTED'
+        - 'okhttp3-source.$UNTRUSTED -> sink.$UNTRUSTED'
+        - 'vertx-web-source.$UNTRUSTED -> sink.$UNTRUSTED'

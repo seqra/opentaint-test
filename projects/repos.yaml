@@ -148,3 +148,18 @@ repositories:
         - --dataflow-approximations
         - "{ext}/reader-codeflow-hang/dataflow-src"
         - --track-external-methods
+
+  - name: reader-integer-tracking
+    git: https://github.com/misonijnik/reader
+    head: 2df437331ca02dda8c3e8ac29cbe0b50d09380ef
+    java-version: 11
+    scan-flags:
+        - --ruleset
+        - builtin
+        - --ruleset
+        - "{ext}/reader-integer-tracking/rules"
+        - --passthrough-approximations
+        - "{ext}/reader-integer-tracking/pass-through"
+        - --dataflow-approximations
+        - "{ext}/reader-integer-tracking/dataflow"
+        - --track-external-methods

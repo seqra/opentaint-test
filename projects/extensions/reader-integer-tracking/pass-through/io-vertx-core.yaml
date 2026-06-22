@@ -1,0 +1,5 @@
+passThrough:
+- function: io.vertx.core.AsyncResult#result
+  copy:
+  - from: this
+    to: result

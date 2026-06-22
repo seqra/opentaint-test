@@ -1,0 +1,7 @@
+passThrough:
+- function: kotlin.coroutines.CoroutineContext#plus
+  copy:
+  - from: this
+    to: result
+  - from: arg(0)
+    to: result

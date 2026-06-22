@@ -1,0 +1,63 @@
+passThrough:
+- function: org.jsoup.nodes.Element#select
+  copy:
+  - from: this
+    to: result
+  - from: this
+    to:
+    - result
+    - .java.lang.Iterable#Element#java.lang.Object
+  - from: arg(0)
+    to: result
+  - from: arg(0)
+    to:
+    - result
+    - .java.lang.Iterable#Element#java.lang.Object
+- function: org.jsoup.nodes.Node#attr
+  copy:
+  - from: this
+    to: result
+  - from: arg(0)
+    to: result
+- function: org.jsoup.nodes.Element#text
+  copy:
+  - from: this
+    to: result
+- function: org.jsoup.nodes.Element#data
+  copy:
+  - from: this
+    to: result
+- function: org.jsoup.nodes.Element#children
+  copy:
+  - from: this
+    to: result
+  - from: this
+    to:
+    - result
+    - .java.lang.Iterable#Element#java.lang.Object
+- function: org.jsoup.nodes.Element#textNodes
+  copy:
+  - from: this
+    to: result
+  - from: this
+    to:
+    - result
+    - .java.lang.Iterable#Element#java.lang.Object
+- function: org.jsoup.nodes.Element#getElementById
+  copy:
+  - from: this
+    to: result
+  - from: arg(0)
+    to: result
+- function: org.jsoup.nodes.TextNode#text
+  copy:
+  - from: this
+    to: result
+- function: org.jsoup.nodes.Element#ownText
+  copy:
+  - from: this
+    to: result
+- function: org.jsoup.nodes.Entities#unescape
+  copy:
+  - from: arg(0)
+    to: result

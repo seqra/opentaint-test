@@ -1,0 +1,21 @@
+passThrough:
+- function: io.vertx.ext.web.client.WebClient#getAbs
+  copy:
+  - from: arg(0)
+    to: result
+- function: io.vertx.ext.web.client.HttpResponse#bodyAsBuffer
+  copy:
+  - from: this
+    to: result
+- function: io.vertx.ext.web.client.HttpResponse#headers
+  copy:
+  - from: this
+    to: result
+- function: io.vertx.ext.web.client.HttpRequest#timeout
+  copy:
+  - from: this
+    to: result
+- function: io.vertx.ext.web.client.HttpResponse#bodyAsString
+  copy:
+  - from: this
+    to: result

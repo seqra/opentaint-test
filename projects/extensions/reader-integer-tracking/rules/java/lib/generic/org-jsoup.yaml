@@ -1,0 +1,35 @@
+rules:
+  - id: org-jsoup-connect-execute-ssrf-sink
+    options:
+      lib: true
+    severity: NOTE
+    message: Jsoup executes a request to a tainted URL
+    metadata:
+      short-description: Jsoup connect/execute SSRF sink
+    languages:
+      - java
+    mode: taint
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: |
+                  org.jsoup.Jsoup.connect($UNTRUSTED).execute();
+              - pattern: |
+                  $CONNECTION = org.jsoup.Jsoup.connect($UNTRUSTED);
+                  ...
+                  $CONNECTION.execute();
+              - pattern: |
+                  org.jsoup.Jsoup.connect($UNTRUSTED).header(...).execute();
+              - pattern: |
+                  org.jsoup.Jsoup.connect($UNTRUSTED).headers(...).execute();
+              - pattern: |
+                  org.jsoup.Jsoup.connect($UNTRUSTED).followRedirects(...).execute();
+              - pattern: |
+                  org.jsoup.Jsoup.connect($UNTRUSTED).ignoreContentType(...).execute();
+              - pattern: |
+                  org.jsoup.Jsoup.connect($UNTRUSTED).method(...).execute();
+              - pattern: |
+                  org.jsoup.Jsoup.connect($UNTRUSTED).requestBody(...).execute();
+              - pattern: |
+                  org.jsoup.Jsoup.connect($UNTRUSTED).sslSocketFactory(...).execute();
+          - focus-metavariable: $UNTRUSTED

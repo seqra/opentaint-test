@@ -1,0 +1,43 @@
+passThrough:
+- function: java.util.concurrent.ConcurrentHashMap#get
+  copy:
+  - from: this
+    to: result
+  - from: arg(0)
+    to: result
+  - from:
+    - this
+    - .java.util.Map#MapKey#java.lang.Object
+    to: result
+  - from:
+    - this
+    - .java.util.Map#MapValue#java.lang.Object
+    to: result
+- function: java.util.concurrent.CopyOnWriteArraySet#contains
+  copy:
+  - from: this
+    to: result
+  - from:
+    - this
+    - .java.lang.Iterable#Element#java.lang.Object
+    to: result
+  - from: arg(0)
+    to: result
+- function: java.util.concurrent.CopyOnWriteArraySet#remove
+  copy:
+  - from: this
+    to: this
+  - from:
+    - this
+    - .java.lang.Iterable#Element#java.lang.Object
+    to:
+    - this
+    - .java.lang.Iterable#Element#java.lang.Object
+  - from: this
+    to: result
+  - from:
+    - this
+    - .java.lang.Iterable#Element#java.lang.Object
+    to: result
+  - from: arg(0)
+    to: result

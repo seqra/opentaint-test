@@ -1,0 +1,123 @@
+passThrough:
+- function: java.util.zip.ZipInputStream#<init>
+  copy:
+  - from: arg(0)
+    to: this
+  - from:
+    - arg(0)
+    - .java.io.InputStream#Content#java.lang.Object
+    to: this
+  - from:
+    - arg(0)
+    - .java.io.InputStream#Content#java.lang.Object
+    to:
+    - this
+    - .java.io.InputStream#Content#java.lang.Object
+- function: java.util.zip.InflaterInputStream#<init>
+  copy:
+  - from: arg(0)
+    to: this
+  - from:
+    - arg(0)
+    - .java.io.InputStream#Content#java.lang.Object
+    to: this
+  - from:
+    - arg(0)
+    - .java.io.InputStream#Content#java.lang.Object
+    to:
+    - this
+    - .java.io.InputStream#Content#java.lang.Object
+- function: java.util.zip.ZipOutputStream#<init>
+  copy:
+  - from: arg(0)
+    to: this
+  - from:
+    - arg(0)
+    - .java.io.OutputStream#Content#java.lang.Object
+    to: this
+  - from:
+    - arg(0)
+    - .java.io.OutputStream#Content#java.lang.Object
+    to:
+    - this
+    - .java.io.OutputStream#Content#java.lang.Object
+- function: java.util.zip.ZipFile#<init>
+  copy:
+  - from: arg(0)
+    to: this
+  - from:
+    - arg(0)
+    - .java.io.File#Content#java.lang.Object
+    to: this
+  - from:
+    - arg(0)
+    - .java.io.File#Content#java.lang.Object
+    to:
+    - this
+    - .java.util.zip.ZipFile#Content#java.lang.Object
+- function: java.util.zip.ZipFile#entries
+  copy:
+  - from: this
+    to: result
+  - from:
+    - this
+    - .java.util.zip.ZipFile#Content#java.lang.Object
+    to: result
+  - from: this
+    to:
+    - result
+    - .java.util.Enumeration#Element#java.lang.Object
+  - from:
+    - this
+    - .java.util.zip.ZipFile#Content#java.lang.Object
+    to:
+    - result
+    - .java.util.Enumeration#Element#java.lang.Object
+- function: java.util.zip.ZipFile#getEntry
+  copy:
+  - from: this
+    to: result
+  - from:
+    - this
+    - .java.util.zip.ZipFile#Content#java.lang.Object
+    to: result
+  - from: arg(0)
+    to: result
+- function: java.util.zip.ZipOutputStream#write
+  copy:
+  - from: this
+    to: this
+  - from: arg(0)
+    to: this
+  - from:
+    - arg(0)
+    - '[*]'
+    to: this
+  - from: arg(0)
+    to:
+    - this
+    - .java.io.OutputStream#Content#java.lang.Object
+  - from:
+    - arg(0)
+    - '[*]'
+    to:
+    - this
+    - .java.io.OutputStream#Content#java.lang.Object
+  - from: arg(1)
+    to:
+    - this
+    - .java.io.OutputStream#Content#java.lang.Object
+  - from: arg(2)
+    to:
+    - this
+    - .java.io.OutputStream#Content#java.lang.Object
+- function: java.util.zip.ZipOutputStream#putNextEntry
+  copy:
+  - from: this
+    to: this
+  - from: arg(0)
+    to: this
+  - from: arg(0)
+    to:
+    - this
+    - .java.util.zip.ZipOutputStream#Entry#java.lang.Object

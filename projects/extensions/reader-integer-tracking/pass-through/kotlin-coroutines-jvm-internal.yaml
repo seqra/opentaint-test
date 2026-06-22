@@ -1,0 +1,21 @@
+passThrough:
+- function: kotlin.coroutines.jvm.internal.ContinuationImpl#<init>
+  copy:
+  - from: arg(0)
+    to: this
+- function: kotlin.coroutines.jvm.internal.SuspendLambda#<init>
+  copy:
+  - from: arg(1)
+    to: this
+- function: kotlin.coroutines.jvm.internal.Boxing#boxInt
+  copy:
+  - from: arg(0)
+    to: result
+- function: kotlin.coroutines.jvm.internal.Boxing#boxBoolean
+  copy:
+  - from: arg(0)
+    to: result
+- function: kotlin.coroutines.jvm.internal.Boxing#boxLong
+  copy:
+  - from: arg(0)
+    to: result

@@ -1,0 +1,32 @@
+rules:
+  - id: ssrf-java-http-parameter-pollution-sinks-lib-ext
+    severity: ERROR
+    message: Untrusted data reaches an SSRF sink
+    metadata:
+      cwe: CWE-918
+      short-description: SSRF via untrusted input
+    languages: [java]
+    mode: join
+    join:
+      refs:
+        - rule: java/lib/generic/retrofit2.yaml#retrofit2-response-body-untrusted-data-source
+          as: retrofit2-source
+        - rule: java/lib/generic/vertx-web-client.yaml#java-vertx-web-client-response-data-source
+          as: vertx-web-client-source
+        - rule: java/lib/generic/vertx-core-http.yaml#java-vertx-core-http-request-absolute-uri-source
+          as: vertx-core-http-source
+        - rule: java/lib/generic/gson-untrusted-data-source.yaml#gson-from-json-string-type-source
+          as: gson-source
+        - rule: java/lib/generic/okhttp3.yaml#okhttp3-response-body-bytes-source
+          as: okhttp3-source
+        - rule: java/lib/generic/vertx-web-untrusted-data-source.yaml#io-vertx-ext-web-untrusted-data-source
+          as: vertx-web-source
+        - rule: java/lib/generic/ssrf-sinks.yaml#java-http-parameter-pollution-sinks
+          as: sink
+      on:
+        - 'retrofit2-source.$UNTRUSTED -> sink.$UNTRUSTED'
+        - 'vertx-web-client-source.$UNTRUSTED -> sink.$UNTRUSTED'
+        - 'vertx-core-http-source.$UNTRUSTED -> sink.$UNTRUSTED'
+        - 'gson-source.$UNTRUSTED -> sink.$UNTRUSTED'
+        - 'okhttp3-source.$UNTRUSTED -> sink.$UNTRUSTED'
+        - 'vertx-web-source.$UNTRUSTED -> sink.$UNTRUSTED'

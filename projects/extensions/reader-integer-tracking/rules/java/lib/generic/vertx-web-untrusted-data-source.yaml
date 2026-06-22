@@ -1,0 +1,27 @@
+rules:
+  - id: io-vertx-ext-web-untrusted-data-source
+    options:
+      lib: true
+    severity: NOTE
+    message: Untrusted data flows from Vert.x Web request APIs
+    metadata:
+      short-description: Untrusted data source in Vert.x Web request handling
+      full-description: |-
+        This source rule marks values returned by Vert.x Web request data accessors as tainted.
+        It covers query parameters, request bodies, uploaded-file collections, and uploaded-file paths.
+    languages:
+      - java
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $UNTRUSTED = (io.vertx.ext.web.RoutingContext $CONTEXT).queryParam(...);
+          - pattern: |
+              $UNTRUSTED = (io.vertx.ext.web.RoutingContext $CONTEXT).getBodyAsString(...);
+          - pattern: |
+              $UNTRUSTED = (io.vertx.ext.web.RoutingContext $CONTEXT).getBodyAsJson(...);
+          - pattern: |
+              $UNTRUSTED = (io.vertx.ext.web.RoutingContext $CONTEXT).getBodyAsJsonArray(...);
+          - pattern: |
+              $UNTRUSTED = (io.vertx.ext.web.RoutingContext $CONTEXT).fileUploads(...);
+          - pattern: |
+              $UNTRUSTED = (io.vertx.ext.web.FileUpload $UPLOAD).uploadedFileName(...);

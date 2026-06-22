@@ -1,0 +1,37 @@
+passThrough:
+- function: javax.net.ssl.KeyManagerFactory#init
+  copy:
+  - from: this
+    to: this
+  - from: arg(0)
+    to: this
+  - from: arg(0)
+    to:
+    - this
+    - .javax.net.ssl.KeyManagerFactory#KeyMaterial#java.lang.Object
+- function: javax.net.ssl.TrustManagerFactory#init
+  copy:
+  - from: this
+    to: this
+  - from: arg(0)
+    to: this
+  - from: arg(0)
+    to:
+    - this
+    - .javax.net.ssl.TrustManagerFactory#TrustMaterial#java.lang.Object
+- function: javax.net.ssl.SSLContext#init
+  copy:
+  - from: this
+    to: this
+  - from: arg(0)
+    to: this
+  - from: arg(0)
+    to:
+    - this
+    - .javax.net.ssl.SSLContext#KeyManagers#java.lang.Object
+  - from: arg(1)
+    to: this
+  - from: arg(1)
+    to:
+    - this
+    - .javax.net.ssl.SSLContext#TrustManagers#java.lang.Object

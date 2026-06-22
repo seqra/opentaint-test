@@ -1,0 +1,5 @@
+passThrough:
+- function: kotlin.coroutines.intrinsics.IntrinsicsKt__IntrinsicsJvmKt#intercepted
+  copy:
+  - from: arg(0)
+    to: result

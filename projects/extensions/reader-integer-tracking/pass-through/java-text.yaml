@@ -1,0 +1,15 @@
+passThrough:
+- function: java.text.MessageFormat#format
+  copy:
+  - from: arg(0)
+    to: result
+  - from:
+    - arg(0)
+    - '[*]'
+    to: result
+  - from: arg(1)
+    to: result
+  - from:
+    - arg(1)
+    - '[*]'
+    to: result

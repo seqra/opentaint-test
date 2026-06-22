@@ -1,0 +1,5 @@
+passThrough:
+- function: java.util.regex.Pattern#compile
+  copy:
+  - from: arg(0)
+    to: result

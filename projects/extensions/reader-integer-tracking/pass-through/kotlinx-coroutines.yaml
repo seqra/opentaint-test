@@ -1,0 +1,5 @@
+passThrough:
+- function: kotlinx.coroutines.CancellableContinuationImpl#<init>
+  copy:
+  - from: arg(0)
+    to: this

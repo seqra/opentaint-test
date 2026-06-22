@@ -1,0 +1,217 @@
+passThrough:
+- function: retrofit2.Retrofit$Builder#baseUrl
+  copy:
+  - from: arg(0)
+    to:
+    - this
+    - .retrofit2.Retrofit$Builder#baseUrl#java.lang.Object
+  - from: arg(0)
+    to:
+    - result
+    - .retrofit2.Retrofit$Builder#baseUrl#java.lang.Object
+  - from: this
+    to: result
+  - from:
+    - this
+    - .retrofit2.Retrofit$Builder#baseUrl#java.lang.Object
+    to:
+    - result
+    - .retrofit2.Retrofit$Builder#baseUrl#java.lang.Object
+  - from:
+    - this
+    - .retrofit2.Retrofit$Builder#converterFactory#java.lang.Object
+    to:
+    - result
+    - .retrofit2.Retrofit$Builder#converterFactory#java.lang.Object
+  - from:
+    - this
+    - .retrofit2.Retrofit$Builder#callAdapterFactory#java.lang.Object
+    to:
+    - result
+    - .retrofit2.Retrofit$Builder#callAdapterFactory#java.lang.Object
+  - from:
+    - this
+    - .retrofit2.Retrofit$Builder#client#java.lang.Object
+    to:
+    - result
+    - .retrofit2.Retrofit$Builder#client#java.lang.Object
+- function: retrofit2.Retrofit$Builder#addConverterFactory
+  copy:
+  - from: arg(0)
+    to:
+    - this
+    - .retrofit2.Retrofit$Builder#converterFactory#java.lang.Object
+  - from: arg(0)
+    to:
+    - result
+    - .retrofit2.Retrofit$Builder#converterFactory#java.lang.Object
+  - from: this
+    to: result
+  - from:
+    - this
+    - .retrofit2.Retrofit$Builder#baseUrl#java.lang.Object
+    to:
+    - result
+    - .retrofit2.Retrofit$Builder#baseUrl#java.lang.Object
+  - from:
+    - this
+    - .retrofit2.Retrofit$Builder#converterFactory#java.lang.Object
+    to:
+    - result
+    - .retrofit2.Retrofit$Builder#converterFactory#java.lang.Object
+  - from:
+    - this
+    - .retrofit2.Retrofit$Builder#callAdapterFactory#java.lang.Object
+    to:
+    - result
+    - .retrofit2.Retrofit$Builder#callAdapterFactory#java.lang.Object
+  - from:
+    - this
+    - .retrofit2.Retrofit$Builder#client#java.lang.Object
+    to:
+    - result
+    - .retrofit2.Retrofit$Builder#client#java.lang.Object
+- function: retrofit2.Retrofit$Builder#addCallAdapterFactory
+  copy:
+  - from: arg(0)
+    to:
+    - this
+    - .retrofit2.Retrofit$Builder#callAdapterFactory#java.lang.Object
+  - from: arg(0)
+    to:
+    - result
+    - .retrofit2.Retrofit$Builder#callAdapterFactory#java.lang.Object
+  - from: this
+    to: result
+  - from:
+    - this
+    - .retrofit2.Retrofit$Builder#baseUrl#java.lang.Object
+    to:
+    - result
+    - .retrofit2.Retrofit$Builder#baseUrl#java.lang.Object
+  - from:
+    - this
+    - .retrofit2.Retrofit$Builder#converterFactory#java.lang.Object
+    to:
+    - result
+    - .retrofit2.Retrofit$Builder#converterFactory#java.lang.Object
+  - from:
+    - this
+    - .retrofit2.Retrofit$Builder#callAdapterFactory#java.lang.Object
+    to:
+    - result
+    - .retrofit2.Retrofit$Builder#callAdapterFactory#java.lang.Object
+  - from:
+    - this
+    - .retrofit2.Retrofit$Builder#client#java.lang.Object
+    to:
+    - result
+    - .retrofit2.Retrofit$Builder#client#java.lang.Object
+- function: retrofit2.Retrofit$Builder#client
+  copy:
+  - from: arg(0)
+    to:
+    - this
+    - .retrofit2.Retrofit$Builder#client#java.lang.Object
+  - from: arg(0)
+    to:
+    - result
+    - .retrofit2.Retrofit$Builder#client#java.lang.Object
+  - from: this
+    to: result
+  - from:
+    - this
+    - .retrofit2.Retrofit$Builder#baseUrl#java.lang.Object
+    to:
+    - result
+    - .retrofit2.Retrofit$Builder#baseUrl#java.lang.Object
+  - from:
+    - this
+    - .retrofit2.Retrofit$Builder#converterFactory#java.lang.Object
+    to:
+    - result
+    - .retrofit2.Retrofit$Builder#converterFactory#java.lang.Object
+  - from:
+    - this
+    - .retrofit2.Retrofit$Builder#callAdapterFactory#java.lang.Object
+    to:
+    - result
+    - .retrofit2.Retrofit$Builder#callAdapterFactory#java.lang.Object
+  - from:
+    - this
+    - .retrofit2.Retrofit$Builder#client#java.lang.Object
+    to:
+    - result
+    - .retrofit2.Retrofit$Builder#client#java.lang.Object
+- function: retrofit2.Retrofit$Builder#build
+  copy:
+  - from:
+    - this
+    - .retrofit2.Retrofit$Builder#baseUrl#java.lang.Object
+    to:
+    - result
+    - .retrofit2.Retrofit#baseUrl#java.lang.Object
+  - from:
+    - this
+    - .retrofit2.Retrofit$Builder#converterFactory#java.lang.Object
+    to:
+    - result
+    - .retrofit2.Retrofit#converterFactory#java.lang.Object
+  - from:
+    - this
+    - .retrofit2.Retrofit$Builder#callAdapterFactory#java.lang.Object
+    to:
+    - result
+    - .retrofit2.Retrofit#callAdapterFactory#java.lang.Object
+  - from:
+    - this
+    - .retrofit2.Retrofit$Builder#client#java.lang.Object
+    to:
+    - result
+    - .retrofit2.Retrofit#client#java.lang.Object
+  - from: this
+    to: result
+  - from:
+    - this
+    - .retrofit2.Retrofit$Builder#baseUrl#java.lang.Object
+    to:
+    - result
+    - .retrofit2.Retrofit$Builder#baseUrl#java.lang.Object
+  - from:
+    - this
+    - .retrofit2.Retrofit$Builder#converterFactory#java.lang.Object
+    to:
+    - result
+    - .retrofit2.Retrofit$Builder#converterFactory#java.lang.Object
+  - from:
+    - this
+    - .retrofit2.Retrofit$Builder#callAdapterFactory#java.lang.Object
+    to:
+    - result
+    - .retrofit2.Retrofit$Builder#callAdapterFactory#java.lang.Object
+  - from:
+    - this
+    - .retrofit2.Retrofit$Builder#client#java.lang.Object
+    to:
+    - result
+    - .retrofit2.Retrofit$Builder#client#java.lang.Object
+- function: retrofit2.Retrofit#create
+  copy:
+  - from: this
+    to: result
+  - from:
+    - this
+    - .retrofit2.Retrofit#baseUrl#java.lang.Object
+    to: result
+  - from:
+    - this
+    - .retrofit2.Retrofit#converterFactory#java.lang.Object
+    to: result
+  - from:
+    - this
+    - .retrofit2.Retrofit#callAdapterFactory#java.lang.Object
+    to: result
+  - from:
+    - this
+    - .retrofit2.Retrofit#client#java.lang.Object
+    to: result

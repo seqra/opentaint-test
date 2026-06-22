@@ -1,0 +1,32 @@
+rules:
+  - id: code-injection-ognl-injection-sinks-lib-ext
+    severity: ERROR
+    message: Untrusted data reaches a code injection sink
+    metadata:
+      cwe: CWE-94
+      short-description: Code injection via untrusted input
+    languages: [java]
+    mode: join
+    join:
+      refs:
+        - rule: java/lib/generic/retrofit2.yaml#retrofit2-response-body-untrusted-data-source
+          as: retrofit2-source
+        - rule: java/lib/generic/vertx-web-client.yaml#java-vertx-web-client-response-data-source
+          as: vertx-web-client-source
+        - rule: java/lib/generic/vertx-core-http.yaml#java-vertx-core-http-request-absolute-uri-source
+          as: vertx-core-http-source
+        - rule: java/lib/generic/gson-untrusted-data-source.yaml#gson-from-json-string-type-source
+          as: gson-source
+        - rule: java/lib/generic/okhttp3.yaml#okhttp3-response-body-bytes-source
+          as: okhttp3-source
+        - rule: java/lib/generic/vertx-web-untrusted-data-source.yaml#io-vertx-ext-web-untrusted-data-source
+          as: vertx-web-source
+        - rule: java/lib/generic/code-injection-sinks.yaml#ognl-injection-sinks
+          as: sink
+      on:
+        - 'retrofit2-source.$UNTRUSTED -> sink.$INPUT'
+        - 'vertx-web-client-source.$UNTRUSTED -> sink.$INPUT'
+        - 'vertx-core-http-source.$UNTRUSTED -> sink.$INPUT'
+        - 'gson-source.$UNTRUSTED -> sink.$INPUT'
+        - 'okhttp3-source.$UNTRUSTED -> sink.$INPUT'
+        - 'vertx-web-source.$UNTRUSTED -> sink.$INPUT'

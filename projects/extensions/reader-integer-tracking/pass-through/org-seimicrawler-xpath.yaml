@@ -1,0 +1,49 @@
+passThrough:
+- function: org.seimicrawler.xpath.JXDocument#create
+  copy:
+  - from: arg(0)
+    to: result
+- function: org.seimicrawler.xpath.JXDocument#selN
+  copy:
+  - from: this
+    to: result
+  - from: this
+    to:
+    - result
+    - .java.lang.Iterable#Element#java.lang.Object
+  - from: arg(0)
+    to: result
+  - from: arg(0)
+    to:
+    - result
+    - .java.lang.Iterable#Element#java.lang.Object
+- function: org.seimicrawler.xpath.JXNode#sel
+  copy:
+  - from: this
+    to: result
+  - from: this
+    to:
+    - result
+    - .java.lang.Iterable#Element#java.lang.Object
+  - from: arg(0)
+    to: result
+  - from: arg(0)
+    to:
+    - result
+    - .java.lang.Iterable#Element#java.lang.Object
+- function: org.seimicrawler.xpath.JXNode#isElement
+  copy:
+  - from: this
+    to: result
+- function: org.seimicrawler.xpath.JXNode#asElement
+  copy:
+  - from: this
+    to: result
+- function: org.seimicrawler.xpath.JXNode#value
+  copy:
+  - from: this
+    to: result
+- function: org.seimicrawler.xpath.JXNode#asString
+  copy:
+  - from: this
+    to: result

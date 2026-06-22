@@ -1,0 +1,17 @@
+passThrough:
+- function: java.net.URLEncoder#encode
+  copy:
+  - from: arg(0)
+    to: result
+- function: java.net.URL#toString
+  copy:
+  - from: this
+    to: result
+- function: java.net.InetSocketAddress#<init>
+  copy:
+  - from: arg(0)
+    to: this
+- function: java.net.Proxy#<init>
+  copy:
+  - from: arg(1)
+    to: this

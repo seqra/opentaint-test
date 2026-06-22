@@ -1,0 +1,31 @@
+rules:
+  - id: okhttp3-response-body-bytes-source
+    options:
+      lib: true
+    severity: NOTE
+    message: OkHttp ResponseBody bytes are remote response data
+    languages:
+      - java
+    patterns:
+      - pattern: |
+          $UNTRUSTED = (okhttp3.ResponseBody $BODY).bytes();
+
+  - id: okhttp3-request-url-ssrf-sink
+    options:
+      lib: true
+    severity: NOTE
+    message: OkHttp executes a request to a tainted URL
+    languages:
+      - java
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $REQUEST = new okhttp3.Request.Builder().url($UNTRUSTED).build();
+              ...
+              (okhttp3.OkHttpClient $CLIENT).newCall($REQUEST).execute();
+          - pattern: |
+              $URL = okhttp3.HttpUrl.get($UNTRUSTED);
+              ...
+              $REQUEST = new okhttp3.Request.Builder().url($URL).build();
+              ...
+              (okhttp3.OkHttpClient $CLIENT).newCall($REQUEST).execute();

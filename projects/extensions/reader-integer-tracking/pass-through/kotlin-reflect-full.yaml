@@ -1,0 +1,9 @@
+passThrough:
+- function: kotlin.reflect.full.KClasses#getMemberProperties
+  copy:
+  - from: arg(0)
+    to: result
+  - from: arg(0)
+    to:
+    - result
+    - .java.lang.Iterable#Element#java.lang.Object

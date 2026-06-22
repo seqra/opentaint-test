@@ -1,0 +1,255 @@
+passThrough:
+- function: kotlin.collections.CollectionsKt___CollectionsJvmKt#reverse
+  copy:
+  - from: arg(0)
+    to: arg(0)
+  - from:
+    - arg(0)
+    - .java.lang.Iterable#Element#java.lang.Object
+    to:
+    - arg(0)
+    - .java.lang.Iterable#Element#java.lang.Object
+- function: kotlin.collections.CollectionsKt__MutableCollectionsJVMKt#sort
+  copy:
+  - from: arg(0)
+    to: arg(0)
+  - from:
+    - arg(0)
+    - .java.lang.Iterable#Element#java.lang.Object
+    to:
+    - arg(0)
+    - .java.lang.Iterable#Element#java.lang.Object
+- function: kotlin.collections.CollectionsKt___CollectionsKt#last
+  copy:
+  - from: arg(0)
+    to: result
+  - from:
+    - arg(0)
+    - .java.lang.Iterable#Element#java.lang.Object
+    to: result
+- function: kotlin.collections.CollectionsKt__CollectionsKt#arrayListOf
+  copy:
+  - from: arg(0)
+    to: result
+  - from: arg(0)
+    to:
+    - result
+    - .java.lang.Iterable#Element#java.lang.Object
+  - from:
+    - arg(0)
+    - '[*]'
+    to:
+    - result
+    - .java.lang.Iterable#Element#java.lang.Object
+- function: kotlin.collections.CollectionsKt___CollectionsKt#joinToString$default
+  copy:
+  - from: arg(0)
+    to: result
+  - from:
+    - arg(0)
+    - .java.lang.Iterable#Element#java.lang.Object
+    to: result
+  - from: arg(1)
+    to: result
+  - from: arg(2)
+    to: result
+  - from: arg(3)
+    to: result
+  - from: arg(5)
+    to: result
+- function: kotlin.collections.CollectionsKt___CollectionsKt#firstOrNull
+  copy:
+  - from: arg(0)
+    to: result
+  - from:
+    - arg(0)
+    - .java.lang.Iterable#Element#java.lang.Object
+    to: result
+- function: kotlin.collections.MapsKt__MapsJVMKt#mapOf
+  copy:
+  - from: arg(0)
+    to: result
+  - from: arg(0)
+    to:
+    - result
+    - .java.util.Map#MapKey#java.lang.Object
+  - from: arg(0)
+    to:
+    - result
+    - .java.util.Map#MapValue#java.lang.Object
+- function: kotlin.collections.ArraysKt___ArraysJvmKt#copyOfRange
+  copy:
+  - from: arg(0)
+    to: result
+  - from:
+    - arg(0)
+    - '[*]'
+    to:
+    - result
+    - '[*]'
+- function: kotlin.collections.ArraysKt___ArraysKt#last
+  copy:
+  - from: arg(0)
+    to: result
+  - from:
+    - arg(0)
+    - '[*]'
+    to: result
+- function: kotlin.collections.CollectionsKt__MutableCollectionsKt#addAll
+  copy:
+  - from: arg(1)
+    to:
+    - arg(0)
+    - .java.lang.Iterable#Element#java.lang.Object
+  - from:
+    - arg(1)
+    - .java.lang.Iterable#Element#java.lang.Object
+    to:
+    - arg(0)
+    - .java.lang.Iterable#Element#java.lang.Object
+  - from:
+    - arg(1)
+    - '[*]'
+    to:
+    - arg(0)
+    - .java.lang.Iterable#Element#java.lang.Object
+  - from: arg(0)
+    to: result
+  - from:
+    - arg(0)
+    - .java.lang.Iterable#Element#java.lang.Object
+    to: result
+  - from: arg(1)
+    to: result
+  - from:
+    - arg(1)
+    - .java.lang.Iterable#Element#java.lang.Object
+    to: result
+  - from:
+    - arg(1)
+    - '[*]'
+    to: result
+- function: kotlin.collections.CollectionsKt___CollectionsKt#first
+  copy:
+  - from: arg(0)
+    to: result
+  - from:
+    - arg(0)
+    - .java.lang.Iterable#Element#java.lang.Object
+    to: result
+- function: kotlin.collections.CollectionsKt___CollectionsKt#lastOrNull
+  copy:
+  - from: arg(0)
+    to: result
+  - from:
+    - arg(0)
+    - .java.lang.Iterable#Element#java.lang.Object
+    to: result
+- function: kotlin.collections.CollectionsKt___CollectionsKt#take
+  copy:
+  - from: arg(0)
+    to: result
+  - from: arg(0)
+    to:
+    - result
+    - .java.lang.Iterable#Element#java.lang.Object
+  - from:
+    - arg(0)
+    - .java.lang.Iterable#Element#java.lang.Object
+    to: result
+  - from:
+    - arg(0)
+    - .java.lang.Iterable#Element#java.lang.Object
+    to:
+    - result
+    - .java.lang.Iterable#Element#java.lang.Object
+- function: kotlin.collections.MapsKt__MapsKt#mapOf
+  copy:
+  - from: arg(0)
+    to: result
+  - from: arg(0)
+    to:
+    - result
+    - .java.util.Map#MapKey#java.lang.Object
+  - from: arg(0)
+    to:
+    - result
+    - .java.util.Map#MapValue#java.lang.Object
+  - from:
+    - arg(0)
+    - '[*]'
+    to: result
+  - from:
+    - arg(0)
+    - '[*]'
+    to:
+    - result
+    - .java.util.Map#MapKey#java.lang.Object
+  - from:
+    - arg(0)
+    - '[*]'
+    to:
+    - result
+    - .java.util.Map#MapValue#java.lang.Object
+- function: kotlin.collections.MapsKt__MapsKt#mutableMapOf
+  copy:
+  - from: arg(0)
+    to: result
+  - from: arg(0)
+    to:
+    - result
+    - .java.util.Map#MapKey#java.lang.Object
+  - from: arg(0)
+    to:
+    - result
+    - .java.util.Map#MapValue#java.lang.Object
+  - from:
+    - arg(0)
+    - '[*]'
+    to: result
+  - from:
+    - arg(0)
+    - '[*]'
+    to:
+    - result
+    - .java.util.Map#MapKey#java.lang.Object
+  - from:
+    - arg(0)
+    - '[*]'
+    to:
+    - result
+    - .java.util.Map#MapValue#java.lang.Object
+- function: kotlin.collections.ArraysKt___ArraysJvmKt#copyInto
+  copy:
+  - from: arg(0)
+    to: arg(1)
+  - from:
+    - arg(0)
+    - '[*]'
+    to:
+    - arg(1)
+    - '[*]'
+  - from: arg(0)
+    to: result
+  - from:
+    - arg(0)
+    - '[*]'
+    to:
+    - result
+    - '[*]'
+  - from: arg(1)
+    to: result
+  - from:
+    - arg(1)
+    - '[*]'
+    to:
+    - result
+    - '[*]'
+- function: kotlin.collections.CollectionsKt__CollectionsJVMKt#listOf
+  copy:
+  - from: arg(0)
+    to: result
+  - from: arg(0)
+    to:
+    - result
+    - .java.lang.Iterable#Element#java.lang.Object

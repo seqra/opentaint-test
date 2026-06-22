@@ -1,0 +1,5 @@
+passThrough:
+- function: java.nio.charset.Charset#forName
+  copy:
+  - from: arg(0)
+    to: result

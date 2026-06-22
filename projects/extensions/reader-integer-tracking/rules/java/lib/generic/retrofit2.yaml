@@ -1,0 +1,82 @@
+rules:
+  - id: retrofit2-response-body-untrusted-data-source
+    options:
+      lib: true
+    severity: NOTE
+    message: Retrofit response body is remote untrusted data
+    metadata:
+      short-description: Retrofit Response.body() returns remote response data
+    languages:
+      - java
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $UNTRUSTED = (retrofit2.Response $RESPONSE).body();
+          - pattern: |
+              $UNTRUSTED = ($X.Response $RESPONSE).body();
+
+  - id: retrofit2-ssrf-sink
+    options:
+      lib: true
+    severity: NOTE
+    message: Retrofit request URL uses untrusted data
+    metadata:
+      short-description: Retrofit request URL sink
+    languages:
+      - java
+    mode: taint
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: (retrofit2.Retrofit.Builder $BUILDER).baseUrl($UNTRUSTED)
+              - pattern: (retrofit2.Retrofit.Builder $BUILDER).baseUrl((java.lang.String $UNTRUSTED))
+              - patterns:
+                  - pattern-either:
+                      - pattern: |
+                          @$HTTP_ANNOTATION(...)
+                          $RETURN_TYPE $METHOD(..., @retrofit2.http.Url $URL_TYPE $UNTRUSTED, ...);
+                      - pattern: |
+                          @$HTTP_ANNOTATION
+                          $RETURN_TYPE $METHOD(..., @retrofit2.http.Url $URL_TYPE $UNTRUSTED, ...);
+                  - metavariable-regex:
+                      metavariable: $RETURN_TYPE
+                      regex: (retrofit2\.)?Call<.*>
+              - patterns:
+                  - pattern-either:
+                      - pattern: |
+                          @$HTTP_ANNOTATION(...)
+                          $RETURN_TYPE $METHOD(..., @$URL_ANNOTATION $URL_TYPE $UNTRUSTED, ...);
+                      - pattern: |
+                          @$HTTP_ANNOTATION
+                          $RETURN_TYPE $METHOD(..., @$URL_ANNOTATION $URL_TYPE $UNTRUSTED, ...);
+                  - metavariable-regex:
+                      metavariable: $RETURN_TYPE
+                      regex: (retrofit2\.)?Call<.*>
+                  - metavariable-pattern:
+                      metavariable: $URL_ANNOTATION
+                      pattern: Url
+              - patterns:
+                  - pattern-inside: |
+                      $SERVICE_TYPE $SERVICE = (retrofit2.Retrofit $RETROFIT).create(...);
+                      ...
+                      $CALL_TYPE $CALL = $SERVICE.$METHOD($UNTRUSTED);
+                      ...
+                      $CALL.execute();
+                  - pattern: $SERVICE.$METHOD($UNTRUSTED)
+                  - metavariable-regex:
+                      metavariable: $CALL_TYPE
+                      regex: (retrofit2\.)?Call<.*>
+              - patterns:
+                  - pattern-inside: |
+                      $SERVICE_TYPE $SERVICE = (retrofit2.Retrofit $RETROFIT).create(...);
+                      ...
+                      $CALL_TYPE $CALL = $SERVICE.$METHOD($UNTRUSTED);
+                      ...
+                      $CALL.enqueue(...);
+                  - pattern: $SERVICE.$METHOD($UNTRUSTED)
+                  - metavariable-regex:
+                      metavariable: $CALL_TYPE
+                      regex: (retrofit2\.)?Call<.*>
+              - pattern: (retrofit2.Call $UNTRUSTED).execute()
+              - pattern: (retrofit2.Call $UNTRUSTED).enqueue(...)
+          - focus-metavariable: $UNTRUSTED

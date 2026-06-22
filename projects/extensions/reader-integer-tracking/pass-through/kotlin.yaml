@@ -1,0 +1,44 @@
+passThrough:
+- function: kotlin.Result#constructor-impl
+  overrides: false
+  copy:
+  - from: arg(0)
+    to: result
+- function: kotlin.TuplesKt#to
+  overrides: false
+  copy:
+  - from: arg(0)
+    to: result
+  - from: arg(1)
+    to: result
+- function: kotlin.Result#exceptionOrNull-impl
+  overrides: false
+  copy:
+  - from: arg(0)
+    to: result
+- function: kotlin.Result#isSuccess-impl
+  overrides: false
+  copy:
+  - from: arg(0)
+    to: result
+- function: kotlin.Pair#<init>
+  overrides: false
+  copy:
+  - from: arg(0)
+    to: this
+  - from: arg(1)
+    to: this
+- function: kotlin.ExceptionsKt__ExceptionsKt#stackTraceToString
+  overrides: false
+  copy:
+  - from: arg(0)
+    to: result
+- function: kotlin.Triple#<init>
+  overrides: false
+  copy:
+  - from: arg(0)
+    to: this
+  - from: arg(1)
+    to: this
+  - from: arg(2)
+    to: this

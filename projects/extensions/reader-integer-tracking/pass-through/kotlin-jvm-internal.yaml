@@ -1,0 +1,75 @@
+passThrough:
+- function: kotlin.jvm.internal.Intrinsics#areEqual
+  copy:
+  - from: arg(0)
+    to: result
+  - from: arg(1)
+    to: result
+- function: kotlin.jvm.internal.Reflection#getOrCreateKotlinClass
+  copy:
+  - from: arg(0)
+    to: result
+- function: kotlin.jvm.internal.FunctionReferenceImpl#<init>
+  copy:
+  - from: arg(1)
+    to: this
+  - from: arg(1)
+    to:
+    - this
+    - .kotlin.jvm.internal.FunctionReferenceImpl#receiver#java.lang.Object
+- function: kotlin.jvm.internal.Intrinsics#compare
+  copy:
+  - from: arg(0)
+    to: result
+  - from: arg(1)
+    to: result
+- function: kotlin.jvm.internal.Intrinsics#stringPlus
+  copy:
+  - from: arg(0)
+    to: result
+  - from: arg(1)
+    to: result
+- function: kotlin.jvm.internal.SpreadBuilder#add
+  copy:
+  - from: arg(0)
+    to:
+    - this
+    - .java.lang.Iterable#Element#java.lang.Object
+- function: kotlin.jvm.internal.SpreadBuilder#addSpread
+  copy:
+  - from: arg(0)
+    to:
+    - this
+    - .java.lang.Iterable#Element#java.lang.Object
+  - from:
+    - arg(0)
+    - '[*]'
+    to:
+    - this
+    - .java.lang.Iterable#Element#java.lang.Object
+  - from:
+    - arg(0)
+    - .java.lang.Iterable#Element#java.lang.Object
+    to:
+    - this
+    - .java.lang.Iterable#Element#java.lang.Object
+- function: kotlin.jvm.internal.TypeIntrinsics#asMutableMap
+  copy:
+  - from: arg(0)
+    to: result
+  - from:
+    - arg(0)
+    - .java.util.Map#MapKey#java.lang.Object
+    to:
+    - result
+    - .java.util.Map#MapKey#java.lang.Object
+  - from:
+    - arg(0)
+    - .java.util.Map#MapValue#java.lang.Object
+    to:
+    - result
+    - .java.util.Map#MapValue#java.lang.Object
+- function: kotlin.jvm.internal.TypeIntrinsics#isMutableMap
+  copy:
+  - from: arg(0)
+    to: result

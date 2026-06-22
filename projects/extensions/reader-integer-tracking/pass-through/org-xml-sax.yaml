@@ -1,0 +1,29 @@
+passThrough:
+- function: org.xml.sax.InputSource#<init>
+  copy:
+  - from: arg(0)
+    to: this
+  - from: arg(0)
+    to:
+    - this
+    - .org.xml.sax.InputSource#Input#java.lang.Object
+  - from:
+    - arg(0)
+    - .java.io.Reader#Content#java.lang.Object
+    to: this
+  - from:
+    - arg(0)
+    - .java.io.Reader#Content#java.lang.Object
+    to:
+    - this
+    - .org.xml.sax.InputSource#Input#java.lang.Object
+  - from:
+    - arg(0)
+    - .java.io.InputStream#Content#java.lang.Object
+    to: this
+  - from:
+    - arg(0)
+    - .java.io.InputStream#Content#java.lang.Object
+    to:
+    - this
+    - .org.xml.sax.InputSource#Input#java.lang.Object

@@ -1,0 +1,55 @@
+passThrough:
+- function: io.vertx.core.http.HttpServerResponse#end
+  copy:
+  - from: this
+    to: this
+  - from: arg(0)
+    to: this
+- function: io.vertx.core.http.HttpServerResponse#putHeader
+  copy:
+  - from: arg(0)
+    to: this
+  - from: arg(0)
+    to: result
+  - from: arg(1)
+    to: this
+  - from: arg(1)
+    to: result
+  - from: this
+    to: result
+- function: io.vertx.core.http.HttpServerResponse#write
+  copy:
+  - from: arg(0)
+    to: this
+  - from: arg(0)
+    to: result
+  - from: this
+    to: result
+- function: io.vertx.core.http.HttpServerResponse#sendFile
+  copy:
+  - from: arg(0)
+    to: this
+  - from: arg(0)
+    to: result
+  - from: this
+    to: result
+- function: io.vertx.core.http.HttpServerRequest#method
+  copy:
+  - from: this
+    to: result
+- function: io.vertx.core.http.HttpServerResponse#setStatusCode
+  copy:
+  - from: this
+    to: result
+- function: io.vertx.core.http.HttpServerRequest#connection
+  copy:
+  - from: this
+    to: result
+- function: io.vertx.core.http.HttpServerResponse#setChunked
+  copy:
+  - from: this
+    to: result
+- function: io.vertx.core.http.HttpServerRequest#host
+  copy:
+  - from: this
+    to: result

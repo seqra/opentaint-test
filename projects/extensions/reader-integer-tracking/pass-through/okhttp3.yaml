@@ -1,0 +1,423 @@
+passThrough:
+- function: okhttp3.Credentials#basic$default
+  copy:
+  - from: arg(0)
+    to: result
+  - from: arg(1)
+    to: result
+- function: okhttp3.RequestBody$Companion#create
+  copy:
+  - from: arg(0)
+    to: result
+  - from: arg(0)
+    to:
+    - result
+    - .okhttp3.RequestBody#body#java.lang.Object
+- function: okhttp3.HttpUrl$Companion#get
+  copy:
+  - from: arg(0)
+    to: result
+  - from: arg(0)
+    to:
+    - result
+    - .okhttp3.HttpUrl#url#java.lang.Object
+- function: okhttp3.MediaType$Companion#get
+  copy:
+  - from: arg(0)
+    to: result
+  - from: arg(0)
+    to:
+    - result
+    - .okhttp3.MediaType#value#java.lang.Object
+- function: okhttp3.MediaType#charset$default
+  copy:
+  - from: arg(0)
+    to: result
+  - from:
+    - arg(0)
+    - .okhttp3.MediaType#value#java.lang.Object
+    to: result
+  - from: arg(1)
+    to: result
+- function: okhttp3.MultipartBody$Builder#addFormDataPart
+  copy:
+  - from: arg(0)
+    to:
+    - this
+    - .okhttp3.MultipartBody$Builder#part#java.lang.Object
+  - from: arg(0)
+    to:
+    - result
+    - .okhttp3.MultipartBody$Builder#part#java.lang.Object
+  - from: arg(1)
+    to:
+    - this
+    - .okhttp3.MultipartBody$Builder#part#java.lang.Object
+  - from: arg(1)
+    to:
+    - result
+    - .okhttp3.MultipartBody$Builder#part#java.lang.Object
+  - from: arg(2)
+    to:
+    - this
+    - .okhttp3.MultipartBody$Builder#part#java.lang.Object
+  - from: arg(2)
+    to:
+    - result
+    - .okhttp3.MultipartBody$Builder#part#java.lang.Object
+  - from: this
+    to: result
+  - from:
+    - this
+    - .okhttp3.MultipartBody$Builder#part#java.lang.Object
+    to:
+    - result
+    - .okhttp3.MultipartBody$Builder#part#java.lang.Object
+- function: okhttp3.Request$Builder#addHeader
+  copy:
+  - from: arg(0)
+    to:
+    - this
+    - .okhttp3.Request$Builder#header#java.lang.Object
+  - from: arg(0)
+    to:
+    - result
+    - .okhttp3.Request$Builder#header#java.lang.Object
+  - from: arg(1)
+    to:
+    - this
+    - .okhttp3.Request$Builder#header#java.lang.Object
+  - from: arg(1)
+    to:
+    - result
+    - .okhttp3.Request$Builder#header#java.lang.Object
+  - from: this
+    to: result
+  - from:
+    - this
+    - .okhttp3.Request$Builder#url#java.lang.Object
+    to:
+    - result
+    - .okhttp3.Request$Builder#url#java.lang.Object
+  - from:
+    - this
+    - .okhttp3.Request$Builder#body#java.lang.Object
+    to:
+    - result
+    - .okhttp3.Request$Builder#body#java.lang.Object
+  - from:
+    - this
+    - .okhttp3.Request$Builder#header#java.lang.Object
+    to:
+    - result
+    - .okhttp3.Request$Builder#header#java.lang.Object
+- function: okhttp3.Request$Builder#build
+  copy:
+  - from:
+    - this
+    - .okhttp3.Request$Builder#url#java.lang.Object
+    to: result
+  - from:
+    - this
+    - .okhttp3.Request$Builder#url#java.lang.Object
+    to:
+    - result
+    - .okhttp3.Request#url#java.lang.Object
+  - from:
+    - this
+    - .okhttp3.Request$Builder#body#java.lang.Object
+    to:
+    - result
+    - .okhttp3.Request#body#java.lang.Object
+  - from:
+    - this
+    - .okhttp3.Request$Builder#header#java.lang.Object
+    to:
+    - result
+    - .okhttp3.Request#header#java.lang.Object
+  - from: this
+    to: result
+- function: okhttp3.Request$Builder#post
+  copy:
+  - from: arg(0)
+    to:
+    - this
+    - .okhttp3.Request$Builder#body#java.lang.Object
+  - from: arg(0)
+    to:
+    - result
+    - .okhttp3.Request$Builder#body#java.lang.Object
+  - from: this
+    to: result
+  - from:
+    - this
+    - .okhttp3.Request$Builder#url#java.lang.Object
+    to:
+    - result
+    - .okhttp3.Request$Builder#url#java.lang.Object
+  - from:
+    - this
+    - .okhttp3.Request$Builder#header#java.lang.Object
+    to:
+    - result
+    - .okhttp3.Request$Builder#header#java.lang.Object
+- function: okhttp3.Request$Builder#url
+  copy:
+  - from: arg(0)
+    to:
+    - this
+    - .okhttp3.Request$Builder#url#java.lang.Object
+  - from: arg(0)
+    to:
+    - result
+    - .okhttp3.Request$Builder#url#java.lang.Object
+  - from: this
+    to: result
+  - from:
+    - this
+    - .okhttp3.Request$Builder#body#java.lang.Object
+    to:
+    - result
+    - .okhttp3.Request$Builder#body#java.lang.Object
+  - from:
+    - this
+    - .okhttp3.Request$Builder#header#java.lang.Object
+    to:
+    - result
+    - .okhttp3.Request$Builder#header#java.lang.Object
+- function: okhttp3.RequestBody$Companion#create$default
+  copy:
+  - from: arg(1)
+    to: result
+  - from: arg(1)
+    to:
+    - result
+    - .okhttp3.RequestBody#body#java.lang.Object
+- function: okhttp3.Response#body
+  copy:
+  - from: this
+    to: result
+  - from:
+    - this
+    - .okhttp3.Response#body#java.lang.Object
+    to: result
+  - from:
+    - this
+    - .okhttp3.Response#body#java.lang.Object
+    to:
+    - result
+    - .okhttp3.ResponseBody#body#java.lang.Object
+- function: okhttp3.Response#message
+  copy:
+  - from: this
+    to: result
+  - from:
+    - this
+    - .okhttp3.Response#message#java.lang.Object
+    to: result
+- function: okhttp3.Response#request
+  copy:
+  - from: this
+    to: result
+  - from:
+    - this
+    - .okhttp3.Response#request#java.lang.Object
+    to: result
+- function: okhttp3.Request#url
+  copy:
+  - from: this
+    to: result
+  - from:
+    - this
+    - .okhttp3.Request#url#java.lang.Object
+    to: result
+  - from:
+    - this
+    - .okhttp3.Request#url#java.lang.Object
+    to:
+    - result
+    - .okhttp3.HttpUrl#url#java.lang.Object
+- function: okhttp3.Response#networkResponse
+  copy:
+  - from: this
+    to: result
+  - from:
+    - this
+    - .okhttp3.Response#request#java.lang.Object
+    to:
+    - result
+    - .okhttp3.Response#request#java.lang.Object
+  - from:
+    - this
+    - .okhttp3.Response#body#java.lang.Object
+    to:
+    - result
+    - .okhttp3.Response#body#java.lang.Object
+  - from:
+    - this
+    - .okhttp3.Response#message#java.lang.Object
+    to:
+    - result
+    - .okhttp3.Response#message#java.lang.Object
+- function: okhttp3.Response$Builder#request
+  copy:
+  - from: arg(0)
+    to:
+    - this
+    - .okhttp3.Response$Builder#request#java.lang.Object
+  - from: arg(0)
+    to:
+    - result
+    - .okhttp3.Response$Builder#request#java.lang.Object
+  - from: this
+    to: result
+  - from:
+    - this
+    - .okhttp3.Response$Builder#request#java.lang.Object
+    to:
+    - result
+    - .okhttp3.Response$Builder#request#java.lang.Object
+- function: okhttp3.ResponseBody#bytes
+  copy:
+  - from: this
+    to: result
+  - from:
+    - this
+    - .okhttp3.ResponseBody#body#java.lang.Object
+    to: result
+- function: okhttp3.ResponseBody#contentType
+  copy:
+  - from: this
+    to: result
+  - from:
+    - this
+    - .okhttp3.ResponseBody#contentType#java.lang.Object
+    to: result
+  - from: this
+    to:
+    - result
+    - .okhttp3.MediaType#value#java.lang.Object
+- function: okhttp3.OkHttpClient#newCall
+  copy:
+  - from: this
+    to: result
+  - from: arg(0)
+    to: result
+  - from: arg(0)
+    to:
+    - result
+    - .okhttp3.Call#request#java.lang.Object
+- function: okhttp3.OkHttpClient$Builder#proxy
+  copy:
+  - from: arg(0)
+    to:
+    - this
+    - .okhttp3.OkHttpClient$Builder#proxy#java.lang.Object
+  - from: arg(0)
+    to:
+    - result
+    - .okhttp3.OkHttpClient$Builder#proxy#java.lang.Object
+  - from: this
+    to: result
+  - from:
+    - this
+    - .okhttp3.OkHttpClient$Builder#proxy#java.lang.Object
+    to:
+    - result
+    - .okhttp3.OkHttpClient$Builder#proxy#java.lang.Object
+- function: okhttp3.HttpUrl#newBuilder
+  copy:
+  - from: this
+    to: result
+  - from:
+    - this
+    - .okhttp3.HttpUrl#url#java.lang.Object
+    to:
+    - result
+    - .okhttp3.HttpUrl$Builder#url#java.lang.Object
+- function: okhttp3.HttpUrl$Builder#addEncodedQueryParameter
+  copy:
+  - from: arg(0)
+    to:
+    - this
+    - .okhttp3.HttpUrl$Builder#url#java.lang.Object
+  - from: arg(0)
+    to:
+    - result
+    - .okhttp3.HttpUrl$Builder#url#java.lang.Object
+  - from: arg(1)
+    to:
+    - this
+    - .okhttp3.HttpUrl$Builder#url#java.lang.Object
+  - from: arg(1)
+    to:
+    - result
+    - .okhttp3.HttpUrl$Builder#url#java.lang.Object
+  - from: this
+    to: result
+  - from:
+    - this
+    - .okhttp3.HttpUrl$Builder#url#java.lang.Object
+    to:
+    - result
+    - .okhttp3.HttpUrl$Builder#url#java.lang.Object
+- function: okhttp3.HttpUrl$Builder#addQueryParameter
+  copy:
+  - from: arg(0)
+    to:
+    - this
+    - .okhttp3.HttpUrl$Builder#url#java.lang.Object
+  - from: arg(0)
+    to:
+    - result
+    - .okhttp3.HttpUrl$Builder#url#java.lang.Object
+  - from: arg(1)
+    to:
+    - this
+    - .okhttp3.HttpUrl$Builder#url#java.lang.Object
+  - from: arg(1)
+    to:
+    - result
+    - .okhttp3.HttpUrl$Builder#url#java.lang.Object
+  - from: this
+    to: result
+  - from:
+    - this
+    - .okhttp3.HttpUrl$Builder#url#java.lang.Object
+    to:
+    - result
+    - .okhttp3.HttpUrl$Builder#url#java.lang.Object
+- function: okhttp3.HttpUrl$Builder#build
+  copy:
+  - from: this
+    to: result
+  - from:
+    - this
+    - .okhttp3.HttpUrl$Builder#url#java.lang.Object
+    to: result
+  - from:
+    - this
+    - .okhttp3.HttpUrl$Builder#url#java.lang.Object
+    to:
+    - result
+    - .okhttp3.HttpUrl#url#java.lang.Object
+- function: okhttp3.Response$Builder#build
+  copy:
+  - from: this
+    to: result
+  - from:
+    - this
+    - .okhttp3.Response$Builder#request#java.lang.Object
+    to:
+    - result
+    - .okhttp3.Response#request#java.lang.Object
+- function: okhttp3.MultipartBody$Builder#build
+  copy:
+  - from: this
+    to: result
+  - from:
+    - this
+    - .okhttp3.MultipartBody$Builder#part#java.lang.Object
+    to:
+    - result
+    - .okhttp3.MultipartBody#part#java.lang.Object

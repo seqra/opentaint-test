@@ -1,0 +1,21 @@
+passThrough:
+- function: org.jsoup.nodes.Node#attr
+  copy:
+  - from: this
+    to: result
+- function: org.jsoup.nodes.Element#text
+  copy:
+  - from: this
+    to: result
+- function: org.jsoup.nodes.Element#data
+  copy:
+  - from: this
+    to: result
+- function: org.jsoup.nodes.Element#getElementById
+  copy:
+  - from: this
+    to: result
+- function: org.jsoup.nodes.TextNode#text
+  copy:
+  - from: this
+    to: result

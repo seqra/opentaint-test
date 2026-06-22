@@ -1,0 +1,44 @@
+rules:
+  - id: vertx-core-untrusted-data-source
+    options:
+      lib: true
+    severity: NOTE
+    message: Untrusted data flows from here
+    metadata:
+      short-description: Untrusted data source in Vert.x core HTTP server entrypoints
+      full-description: |-
+        This is a source rule for untrusted input in Vert.x core HTTP server code paths.
+        It marks values as tainted when they originate from the attacker-controlled
+        request URI exposed by the Vert.x HTTP server request API.
+
+        Source locations matched by this rule:
+        - `HttpServerRequest.absoluteURI()` returns the full attacker-controlled request URI.
+    languages:
+      - java
+    patterns:
+      - pattern: |
+          $UNTRUSTED = (io.vertx.core.http.HttpServerRequest $REQ).absoluteURI();
+
+  - id: vertx-web-client-untrusted-data-source
+    options:
+      lib: true
+    severity: NOTE
+    message: Untrusted data flows from here
+    metadata:
+      short-description: Untrusted network response data source in Vert.x web client
+      full-description: |-
+        This is a source rule for untrusted input in Vert.x web-client code paths.
+        It marks values as tainted when they originate from a remote HTTP response
+        fetched from a user-/rule-configured server, i.e. untrusted network content.
+
+        Source locations matched by this rule:
+        - `HttpResponse.bodyAsBuffer()` returns the remote response body.
+        - `HttpResponse.headers()` returns the remote response headers.
+    languages:
+      - java
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $UNTRUSTED = (io.vertx.ext.web.client.HttpResponse $RESP).bodyAsBuffer();
+          - pattern: |
+              $UNTRUSTED = (io.vertx.ext.web.client.HttpResponse $RESP).headers();

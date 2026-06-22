@@ -1,0 +1,21 @@
+rules:
+  - id: retrofit2-response-body-untrusted-source
+    options:
+      lib: true
+    severity: NOTE
+    message: Untrusted remote HTTP response content flows from here
+    metadata:
+      short-description: Untrusted data source from retrofit2 Response.body
+      full-description: |-
+        This is a source rule for untrusted network-inbound data read from a
+        retrofit2 HTTP response. The body of an outbound HTTP fetch is attacker
+        influenced when the remote endpoint is not trusted, and materializes
+        through the `Response.body()` accessor.
+
+        Methods matched as untrusted sources:
+        - `retrofit2.Response.body()`
+    languages:
+      - java
+    patterns:
+      - pattern: |
+          $UNTRUSTED = (retrofit2.Response $R).body();

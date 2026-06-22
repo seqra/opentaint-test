@@ -1,0 +1,26 @@
+rules:
+  - id: retrofit2-baseurl-ssrf-sink
+    options:
+      lib: true
+    severity: NOTE
+    message: Retrofit client base URL set from untrusted data (SSRF)
+    metadata:
+      short-description: SSRF sink for retrofit2 Retrofit.Builder.baseUrl
+      full-description: |-
+        This is a sink rule for server-side request forgery through the retrofit2
+        HTTP client. The destination the Retrofit client connects to is configured
+        through `Retrofit.Builder.baseUrl(...)`. When the base URL argument is
+        attacker influenced, the client can be redirected to an unintended internal
+        or external destination.
+
+        Methods matched as SSRF sinks:
+        - `retrofit2.Retrofit.Builder.baseUrl(String)`
+        - `retrofit2.Retrofit.Builder.baseUrl(okhttp3.HttpUrl)`
+        - `retrofit2.Retrofit.Builder.baseUrl(java.net.URL)`
+    languages:
+      - java
+    mode: taint
+    pattern-sinks:
+      - patterns:
+          - pattern: (retrofit2.Retrofit.Builder $B).baseUrl($UNTRUSTED)
+          - focus-metavariable: $UNTRUSTED

@@ -1,0 +1,31 @@
+rules:
+  - id: okhttp3-response-body-untrusted-source
+    options:
+      lib: true
+    severity: NOTE
+    message: Untrusted remote HTTP response content flows from here
+    metadata:
+      short-description: Untrusted data source from okhttp3 ResponseBody reads
+      full-description: |-
+        This is a source rule for untrusted network-inbound data read from an
+        okhttp3 HTTP response. The body of an outbound HTTP fetch is attacker
+        influenced when the remote endpoint is not trusted, and materializes
+        through the ResponseBody read APIs.
+
+        Methods matched as untrusted sources:
+        - `okhttp3.ResponseBody.bytes()`
+        - `okhttp3.ResponseBody.string()`
+        - `okhttp3.ResponseBody.byteStream()`
+        - `okhttp3.ResponseBody.charStream()`
+    languages:
+      - java
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $UNTRUSTED = (okhttp3.ResponseBody $BODY).bytes();
+          - pattern: |
+              $UNTRUSTED = (okhttp3.ResponseBody $BODY).string();
+          - pattern: |
+              $UNTRUSTED = (okhttp3.ResponseBody $BODY).byteStream();
+          - pattern: |
+              $UNTRUSTED = (okhttp3.ResponseBody $BODY).charStream();

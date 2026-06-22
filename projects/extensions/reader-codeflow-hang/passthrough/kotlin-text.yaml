@@ -1,0 +1,37 @@
+passThrough:
+- function: kotlin.text.Regex#replace
+  copy:
+  - from: arg(0)
+    to: result
+  - from: arg(1)
+    to: result
+- function: kotlin.text.Regex#replaceFirst
+  copy:
+  - from: arg(0)
+    to: result
+  - from: arg(1)
+    to: result
+- function: kotlin.text.Regex#split
+  copy:
+  - from: arg(0)
+    to:
+    - result
+    - .java.lang.Iterable#Element#java.lang.Object
+- function: kotlin.text.Regex#<init>
+  copy:
+  - from: arg(0)
+    to:
+    - this
+    - .kotlin.text.Regex#pattern#java.lang.Object
+- function: kotlin.text.StringsKt__StringsKt#indexOf$default
+  copy:
+  - from: arg(0)
+    to: result
+- function: kotlin.text.StringsKt__StringsKt#lastIndexOf$default
+  copy:
+  - from: arg(0)
+    to: result
+- function: kotlin.text.StringsKt__StringsKt#getLastIndex
+  copy:
+  - from: arg(0)
+    to: result

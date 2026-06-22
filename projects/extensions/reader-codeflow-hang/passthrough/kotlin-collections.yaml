@@ -1,0 +1,55 @@
+passThrough:
+- function: kotlin.collections.CollectionsKt__CollectionsKt#arrayListOf
+  copy:
+  - from:
+    - arg(0)
+    - '[*]'
+    to:
+    - result
+    - .java.lang.Iterable#Element#java.lang.Object
+  - from: arg(0)
+    to: result
+- function: kotlin.collections.CollectionsKt___CollectionsKt#firstOrNull
+  copy:
+  - from:
+    - arg(0)
+    - .java.lang.Iterable#Element#java.lang.Object
+    to: result
+  - from: arg(0)
+    to: result
+- function: kotlin.collections.CollectionsKt___CollectionsKt#last
+  copy:
+  - from:
+    - arg(0)
+    - .java.lang.Iterable#Element#java.lang.Object
+    to: result
+  - from: arg(0)
+    to: result
+- function: kotlin.collections.MapsKt__MapsJVMKt#mapOf
+  copy:
+  - from: arg(0)
+    to:
+    - result
+    - .java.util.Map#MapKey#java.lang.Object
+  - from: arg(0)
+    to:
+    - result
+    - .java.util.Map#MapValue#java.lang.Object
+  - from: arg(0)
+    to: result
+- function: kotlin.collections.MapsKt__MapsKt#mapOf
+  copy:
+  - from:
+    - arg(0)
+    - '[*]'
+    to:
+    - result
+    - .java.util.Map#MapKey#java.lang.Object
+  - from:
+    - arg(0)
+    - '[*]'
+    to:
+    - result
+    - .java.util.Map#MapValue#java.lang.Object
+  - from: arg(0)
+    to: result

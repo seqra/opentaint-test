@@ -1,0 +1,13 @@
+passThrough:
+- function: org.jsoup.select.Elements#html
+  copy:
+  - from: this
+    to: result
+- function: org.jsoup.select.Evaluator$Id#<init>
+  copy:
+  - from: arg(0)
+    to: this
+- function: org.jsoup.select.Elements#remove
+  copy:
+  - from: this
+    to: result

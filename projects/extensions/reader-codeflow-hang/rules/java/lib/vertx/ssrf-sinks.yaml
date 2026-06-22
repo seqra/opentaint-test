@@ -1,0 +1,27 @@
+rules:
+  - id: vertx-web-client-ssrf-sink
+    options:
+      lib: true
+    severity: NOTE
+    message: Requesting an attacker-controlled absolute URL via Vert.x WebClient
+    metadata:
+      short-description: SSRF sink in Vert.x WebClient absolute-URL request builders
+      full-description: |-
+        This is a sink rule for Server-Side Request Forgery in Vert.x web-client code paths.
+        The URL-receiving WebClient request builders (getAbs/postAbs/putAbs/deleteAbs/
+        patchAbs/headAbs) build an outbound request to the absolute URL passed as the
+        argument; when that URL is attacker-controlled the subsequent HttpRequest.send(...)
+        performs the forged request. The tainted argument is the absolute URL string.
+    languages:
+      - java
+    mode: taint
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: (io.vertx.ext.web.client.WebClient $C).getAbs($UNTRUSTED)
+              - pattern: (io.vertx.ext.web.client.WebClient $C).postAbs($UNTRUSTED)
+              - pattern: (io.vertx.ext.web.client.WebClient $C).putAbs($UNTRUSTED)
+              - pattern: (io.vertx.ext.web.client.WebClient $C).deleteAbs($UNTRUSTED)
+              - pattern: (io.vertx.ext.web.client.WebClient $C).patchAbs($UNTRUSTED)
+              - pattern: (io.vertx.ext.web.client.WebClient $C).headAbs($UNTRUSTED)
+          - focus-metavariable: $UNTRUSTED

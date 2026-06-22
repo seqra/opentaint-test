@@ -1,0 +1,39 @@
+passThrough:
+- function: com.jayway.jsonpath.JsonPath#parse
+  copy:
+  - from: arg(0)
+    to: result
+  - from: arg(0)
+    to:
+    - result
+    - .com.jayway.jsonpath.ReadContext#json#java.lang.Object
+- function: com.jayway.jsonpath.ParseContext#parse
+  copy:
+  - from: arg(0)
+    to: result
+  - from: arg(0)
+    to:
+    - result
+    - .com.jayway.jsonpath.ReadContext#json#java.lang.Object
+- function: com.jayway.jsonpath.ReadContext#read
+  copy:
+  - from:
+    - this
+    - .com.jayway.jsonpath.ReadContext#json#java.lang.Object
+    to: result
+  - from: arg(0)
+    to: result
+- function:
+    package: com.jayway.jsonpath
+    class: ReadContext
+    name: read
+  condition:
+    typeIs: java.lang.Class
+    pos: arg(1)
+  copy:
+  - from:
+    - this
+    - .com.jayway.jsonpath.ReadContext#json#java.lang.Object
+    to: result
+  - from: arg(0)
+    to: result

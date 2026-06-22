@@ -1,0 +1,7 @@
+passThrough:
+- function: java.security.MessageDigest#digest
+  copy:
+  - from: this
+    to: result
+  - from: arg(0)
+    to: result

@@ -1,0 +1,9 @@
+passThrough:
+- function: java.net.URLEncoder#encode
+  copy:
+  - from: arg(0)
+    to: result
+- function: java.net.URL#toString
+  copy:
+  - from: this
+    to: result

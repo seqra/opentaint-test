@@ -1,0 +1,33 @@
+passThrough:
+- function: kotlin.Result#constructor-impl
+  copy:
+  - from: arg(0)
+    to: result
+- function: kotlin.TuplesKt#to
+  copy:
+  - from: arg(0)
+    to:
+    - result
+    - .kotlin.Pair#first#java.lang.Object
+  - from: arg(1)
+    to:
+    - result
+    - .kotlin.Pair#second#java.lang.Object
+  - from: arg(0)
+    to: result
+  - from: arg(1)
+    to: result
+- function: kotlin.Pair#<init>
+  copy:
+  - from: arg(0)
+    to:
+    - this
+    - .kotlin.Pair#first#java.lang.Object
+  - from: arg(1)
+    to:
+    - this
+    - .kotlin.Pair#second#java.lang.Object
+  - from: arg(0)
+    to: this
+  - from: arg(1)
+    to: this

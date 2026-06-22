@@ -1,0 +1,5 @@
+passThrough:
+- function: org.seimicrawler.xpath.JXNode#asString
+  copy:
+  - from: this
+    to: result

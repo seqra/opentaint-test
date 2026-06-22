@@ -133,3 +133,18 @@ repositories:
       - builtin
       - --ruleset
       - "{ext}/conductor/rules"
+
+  - name: reader-codeflow-hang
+    git: https://github.com/misonijnik/reader
+    head: 827dd8281ac39a870dde7b0db7274bf0f41aed20
+    java-version: 11
+    scan-flags:
+        - --ruleset
+        - builtin
+        - --ruleset
+        - "{ext}/reader-codeflow-hang/rules"
+        - --passthrough-approximations
+        - "{ext}/reader-codeflow-hang/passthrough"
+        - --dataflow-approximations
+        - "{ext}/reader-codeflow-hang/dataflow-src"
+        - --track-external-methods

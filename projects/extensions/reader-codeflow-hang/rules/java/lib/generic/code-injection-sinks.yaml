@@ -1,0 +1,16 @@
+rules:
+  - id: dangerous-script-engine-eval-bindings
+    options:
+      lib: true
+    severity: NOTE
+    message: Risky code evaluation with user-controlled value via two-arg eval overload
+    metadata:
+      provenance: https://find-sec-bugs.github.io/bugs.htm#SCRIPT_ENGINE_INJECTION
+    languages:
+      - java
+    patterns:
+      - pattern-either:
+          - pattern: (javax.script.ScriptEngine $SE).eval($UNTRUSTED, $BINDINGS)
+          - pattern: (com.script.ScriptEngine $SE).eval($UNTRUSTED, $BINDINGS)
+          - pattern: (com.script.javascript.RhinoScriptEngine $SE).eval($UNTRUSTED, $BINDINGS)
+      - focus-metavariable: $UNTRUSTED

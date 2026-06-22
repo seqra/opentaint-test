@@ -1,0 +1,29 @@
+passThrough:
+- function: java.lang.Integer#parseInt
+  copy:
+  - from: arg(0)
+    to: result
+- function: java.lang.Integer#intValue
+  copy:
+  - from: this
+    to: result
+- function: java.lang.Integer#toString
+  copy:
+  - from: arg(0)
+    to: result
+- function: java.lang.StringBuilder#toString
+  copy:
+  - from: this
+    to: result
+- function: java.lang.StringBuffer#toString
+  copy:
+  - from: this
+    to: result
+- function: java.lang.CharSequence#toString
+  copy:
+  - from: this
+    to: result
+- function: java.lang.Object#toString
+  copy:
+  - from: this
+    to: result

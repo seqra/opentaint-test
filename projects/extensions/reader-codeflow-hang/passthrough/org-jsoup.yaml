@@ -1,0 +1,5 @@
+passThrough:
+- function: org.jsoup.Jsoup#parse
+  copy:
+  - from: arg(0)
+    to: result

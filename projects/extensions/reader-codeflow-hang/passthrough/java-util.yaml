@@ -1,0 +1,33 @@
+passThrough:
+- function: java.util.HashMap#putAll
+  copy:
+  - from:
+    - arg(0)
+    - .java.util.Map#MapKey#java.lang.Object
+    to:
+    - this
+    - .java.util.Map#MapKey#java.lang.Object
+  - from:
+    - arg(0)
+    - .java.util.Map#MapValue#java.lang.Object
+    to:
+    - this
+    - .java.util.Map#MapValue#java.lang.Object
+  - from: arg(0)
+    to: this
+- function: java.util.Map#entrySet
+  copy:
+  - from:
+    - this
+    - .java.util.Map#MapKey#java.lang.Object
+    to:
+    - result
+    - .java.util.Map#MapKey#java.lang.Object
+  - from:
+    - this
+    - .java.util.Map#MapValue#java.lang.Object
+    to:
+    - result
+    - .java.util.Map#MapValue#java.lang.Object
+  - from: this
+    to: result

@@ -1,0 +1,32 @@
+rules:
+  - id: jsonpath-untrusted-data-source
+    options:
+      lib: true
+    severity: NOTE
+    message: Untrusted remote JSON content flows from here
+    metadata:
+      short-description: Untrusted data source from com.jayway.jsonpath parse/read
+      full-description: |-
+        This is a source rule for untrusted network-inbound data parsed and read
+        through com.jayway.jsonpath. Remote JSON wrapped by JsonPath.parse /
+        ParseContext.parse returns a tainted DocumentContext, and the values
+        extracted via ReadContext.read carry the remote payload across the
+        network->app boundary.
+
+        Methods matched as untrusted sources:
+        - `com.jayway.jsonpath.JsonPath.parse(String)` / `parse(Object)`
+        - `com.jayway.jsonpath.ParseContext.parse(String)`
+        - `com.jayway.jsonpath.ReadContext.read(String, Predicate[])`
+        - `com.jayway.jsonpath.ReadContext.read(String, Class, Predicate[])`
+    languages:
+      - java
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $UNTRUSTED = com.jayway.jsonpath.JsonPath.parse(...);
+          - pattern: |
+              $UNTRUSTED = (com.jayway.jsonpath.ParseContext $PC).parse(...);
+          - pattern: |
+              $UNTRUSTED = (com.jayway.jsonpath.ReadContext $RC).read(...);
+          - pattern: |
+              $UNTRUSTED = (com.jayway.jsonpath.DocumentContext $DC).read(...);

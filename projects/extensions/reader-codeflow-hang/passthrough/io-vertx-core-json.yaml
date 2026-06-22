@@ -1,0 +1,9 @@
+passThrough:
+- function: io.vertx.core.json.JsonObject#toString
+  copy:
+  - from: this
+    to: result
+- function: io.vertx.core.json.JsonArray#getList
+  copy:
+  - from: this
+    to: result

@@ -1,0 +1,5 @@
+passThrough:
+- function: io.vertx.ext.web.FileUpload#uploadedFileName
+  copy:
+  - from: this
+    to: result

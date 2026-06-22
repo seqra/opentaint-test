@@ -1,0 +1,9 @@
+passThrough:
+- function: okhttp3.RequestBody$Companion#create
+  copy:
+  - from: arg(0)
+    to: result
+  - from: arg(0)
+    to:
+    - result
+    - .okhttp3.RequestBody#Body#java.lang.Object

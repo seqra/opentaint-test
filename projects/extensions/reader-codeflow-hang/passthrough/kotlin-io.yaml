@@ -1,0 +1,9 @@
+passThrough:
+- function: kotlin.io.FilesKt__FileReadWriteKt#readText$default
+  copy:
+  - from: arg(0)
+    to: result
+- function: kotlin.io.FilesKt__FileReadWriteKt#writeText$default
+  copy:
+  - from: arg(1)
+    to: arg(0)

@@ -1,0 +1,9 @@
+passThrough:
+- function: kotlin.reflect.KProperty1#get
+  copy:
+  - from: arg(0)
+    to: result
+- function: kotlin.reflect.KCallable#call
+  copy:
+  - from: arg(0)
+    to: result

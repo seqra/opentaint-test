@@ -33,8 +33,24 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-LOC_FIELDS_BASE = ("ruleId", "path", "startLine", "endLine")
-LOC_FIELDS_COLS = ("ruleId", "path", "startLine", "endLine", "startColumn", "endColumn")
+CODE_FLOWS_FIELD = "codeFlows"
+RESULTS_FIELD = "results"
+CODE_FLOWS_DIFF_REASON = "codeflows_diff"
+LOC_FIELDS_BASE = ("ruleId", "path", "startLine", "endLine", CODE_FLOWS_FIELD)
+LOC_FIELDS_COLS = ("ruleId", "path", "startLine", "endLine", "startColumn", "endColumn", CODE_FLOWS_FIELD)
+
+
+def _sarif_stats(sarif: dict) -> dict:
+    results_count = 0
+    code_flows_count = 0
+    for run in sarif.get("runs", []) or []:
+        for result in run.get(RESULTS_FIELD, []) or []:
+            results_count += 1
+            code_flows_count += len(result.get(CODE_FLOWS_FIELD) or [])
+    return {
+        "results": results_count,
+        CODE_FLOWS_FIELD: code_flows_count,
+    }
 
 
 def _extract_findings(sarif: dict) -> list[dict]:
@@ -42,6 +58,7 @@ def _extract_findings(sarif: dict) -> list[dict]:
     for run in sarif.get("runs", []) or []:
         for res in run.get("results", []) or []:
             rule_id = res.get("ruleId") or (res.get("rule") or {}).get("id")
+            code_flows_size = len(res.get("codeFlows") or [])
             locations = res.get("locations") or [{}]
             for loc in locations:
                 pl = (loc.get("physicalLocation") or {})
@@ -54,13 +71,14 @@ def _extract_findings(sarif: dict) -> list[dict]:
                     "endLine": region.get("endLine"),
                     "startColumn": region.get("startColumn"),
                     "endColumn": region.get("endColumn"),
+                    CODE_FLOWS_FIELD: code_flows_size,
                 })
     return findings
 
 
 def _key(f: dict, compare_locations: bool, compare_columns: bool) -> tuple:
     if not compare_locations:
-        return (f["ruleId"],)
+        return (f["ruleId"], f.get(CODE_FLOWS_FIELD))
     fields = LOC_FIELDS_COLS if compare_columns else LOC_FIELDS_BASE
     return tuple(f.get(k) for k in fields)
 
@@ -138,6 +156,11 @@ def compare_bundle(project: str, base_dir: Path, new_dir: Path,
 
     base_findings = _extract_findings(base_sarif) if base_sarif else []
     new_findings = _extract_findings(new_sarif) if new_sarif else []
+    base_sarif_stats = _sarif_stats(base_sarif) if base_sarif else {"results": 0, CODE_FLOWS_FIELD: 0}
+    new_sarif_stats = _sarif_stats(new_sarif) if new_sarif else {"results": 0, CODE_FLOWS_FIELD: 0}
+    results_delta = _metric_delta(base_sarif_stats["results"], new_sarif_stats["results"])
+    code_flows_delta = _metric_delta(base_sarif_stats[CODE_FLOWS_FIELD], new_sarif_stats[CODE_FLOWS_FIELD])
+    codeflows_diff = code_flows_delta["delta"] != 0
     added, removed, unchanged = diff_findings(base_findings, new_findings,
                                               compare_locations, compare_columns)
 
@@ -146,6 +169,8 @@ def compare_bundle(project: str, base_dir: Path, new_dir: Path,
         fail_reasons.append("status_regression")
     if added or removed:
         fail_reasons.append("findings_diff")
+    elif codeflows_diff:
+        fail_reasons.append(CODE_FLOWS_DIFF_REASON)
     if base_error or new_error:
         fail_reasons.append("scan_error")
 
@@ -160,6 +185,8 @@ def compare_bundle(project: str, base_dir: Path, new_dir: Path,
         "status_regression": status_regression,
         "time": time_delta,
         "memory": memory_delta,
+        "sarif_results": results_delta,
+        CODE_FLOWS_FIELD: code_flows_delta,
         "added": added,
         "removed": removed,
         "counts": {
@@ -216,8 +243,8 @@ def render_markdown(diffs: list[dict]) -> str:
         f"**{status_deg_n} with analyzer-status regression**, "
         f"**{no_result_n} with no analysis result on at least one side**",
         "",
-        "| project | base status | new status | =findings | +findings | −findings | scan time | peak mem | verdict | notes |",
-        "|---|---|---|---:|---:|---:|---:|---:|---|---|",
+        "| project | base status | new status | ±results | ±codeFlows | =findings | +findings | −findings | scan time | peak mem | verdict | notes |",
+        "|---|---|---|---:|---:|---:|---:|---:|---:|---:|---|---|",
     ]
     for d in sorted(diffs, key=lambda x: (x["verdict"] != "FAIL", x["project"])):
         flag = "❌ " if d["verdict"] == "FAIL" else ""
@@ -239,9 +266,12 @@ def render_markdown(diffs: list[dict]) -> str:
         if d.get("new_error"):      notes.append(f"new error: {_clean(d['new_error'])}")
         scan_time = _fmt_metric(d.get("time") or {}, "s")
         peak_mem = _fmt_metric(d.get("memory") or {}, "G", scale=1024**3, decimals=1)
+        sarif_results = _fmt_metric(d.get("sarif_results") or {}, "")
+        code_flows = _fmt_metric(d.get(CODE_FLOWS_FIELD) or {}, "")
         lines.append(
             f"| {flag}{d['project']} | {fmt_status(d['base_status'])} "
             f"| {fmt_status(d['new_status'])} "
+            f"| {sarif_results} | {code_flows} "
             f"| {unchanged} | {added} | {removed} "
             f"| {scan_time} | {peak_mem} "
             f"| {d['verdict']} | {'; '.join(notes)} |"

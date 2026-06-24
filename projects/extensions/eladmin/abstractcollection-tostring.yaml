@@ -1,0 +1,29 @@
+# Reproduction artifact for issue: "A toString() passThrough override
+# (AbstractCollection#toString) disables the built-in StringBuilder concat taint
+# model".
+#
+# This file carries the SINGLE passThrough entry that the issue bisected down to.
+# It is loaded via `--passthrough-approximations` (OVERRIDE mode) on the `eladmin`
+# project in ../../repos.yaml.
+#
+# Expected (correct) behaviour: this models only java.util.AbstractCollection#toString
+# and leaves the engine's special-cased java.lang.StringBuilder#toString() concat
+# model untouched, so eladmin's `new File(fileSavePath + fileName)` path-traversal
+# findings still fire.
+#
+# Buggy behaviour reproduced on CI: the OVERRIDE-mode matcher keys on the bare
+# `toString()Ljava/lang/String;` signature and shadows StringBuilder#toString() too,
+# replacing the append-arg concat model with this generic `this -> result` copy.
+# String concatenation (`a + b`, which javac lowers to
+# `new StringBuilder().append(a).append(b).toString()`) then loses its taint, so
+# every concatenated path-traversal / response-splitting / xss sink goes silent.
+#
+# On eladmin this drops the path-traversal findings to 0; on an opentaint revision
+# where the override matcher is correctly scoped to the declared type, they stand.
+# Compare a pre-fix opentaint ref (base) against a post-fix ref (new) and the
+# regression bench surfaces the difference as added/removed findings on `eladmin`.
+passThrough:
+  - function: java.util.AbstractCollection#toString
+    copy:
+      - from: this
+        to: result

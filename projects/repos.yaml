@@ -133,3 +133,24 @@ repositories:
       - builtin
       - --ruleset
       - "{ext}/conductor/rules"
+
+  # Reproduction case for the issue "A toString() passThrough override
+  # (AbstractCollection#toString) disables the built-in StringBuilder concat
+  # taint model". eladmin's DatabaseController#uploadDatabase builds a sink
+  # argument by string concatenation: `new File(fileSavePath + fileName)` where
+  # fileName = file.getOriginalFilename() is tainted. javac lowers the `+` to
+  # StringBuilder().append(...).append(...).toString(), so the path-traversal
+  # finding depends on the engine's built-in StringBuilder#toString concat model.
+  #
+  # The single AbstractCollection#toString passThrough loaded below (OVERRIDE
+  # mode) is what the issue bisected the regression down to: on a buggy opentaint
+  # it shadows StringBuilder#toString and the path-traversal findings drop to 0;
+  # on a fixed opentaint they stand. Run the workflow with base = a pre-fix ref
+  # and new = a post-fix ref and the bench reports the difference on `eladmin`.
+  - name: eladmin
+    git: https://github.com/elunez/eladmin.git
+    head: 39d480938d27a9630d632578c3ef60cf3647a79e   # tag v2.7
+    java-version: 8
+    scan-flags:
+      - --passthrough-approximations
+      - "{ext}/eladmin/abstractcollection-tostring.yaml"

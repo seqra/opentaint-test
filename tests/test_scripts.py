@@ -303,6 +303,115 @@ def test_matrix_scan_flags_rejects_non_list(tmp_path):
         generate_matrix.build_matrix(repos, "AAA", "AAA", [], None)
 
 
+# ── generate_matrix: local (in-repo) projects via `path` ───────────────
+
+def test_matrix_git_project_has_empty_path(tmp_path):
+    repos = _write_repos(tmp_path, (
+        "repositories:\n"
+        "  - name: demo\n"
+        "    git: https://example.com/demo.git\n"
+        "    head: deadbeef\n"
+    ))
+    m = generate_matrix.build_matrix(repos, "AAA", "AAA", [], None)
+    assert len(m["include"]) == 1
+    e = m["include"][0]
+    assert e["git"] == "https://example.com/demo.git"
+    assert e["head"] == "deadbeef"
+    assert e["path"] == ""
+
+
+def test_matrix_local_path_project(tmp_path):
+    repos = _write_repos(tmp_path, (
+        "repositories:\n"
+        "  - name: local-repro\n"
+        "    path: projects/local/local-repro\n"
+    ))
+    # base != new so both ref kinds are emitted.
+    m = generate_matrix.build_matrix(repos, "AAA", "BBB", [], None)
+    assert len(m["include"]) == 2
+    for e in m["include"]:
+        assert e["path"] == "projects/local/local-repro"
+        assert e["git"] == ""
+        # No upstream commit: cache-key head is the LOCAL_HEAD sentinel, which
+        # must be a valid cache-key component.
+        assert e["head"] == generate_matrix.LOCAL_HEAD
+        cache_key.cache_key("sha", "tsys", e["project"], e["head"])
+
+
+def test_matrix_local_path_rejects_git(tmp_path):
+    repos = _write_repos(tmp_path, (
+        "repositories:\n"
+        "  - name: bad\n"
+        "    path: projects/local/bad\n"
+        "    git: https://example.com/bad.git\n"
+        "    head: deadbeef\n"
+    ))
+    with pytest.raises(ValueError):
+        generate_matrix.build_matrix(repos, "AAA", "AAA", [], None)
+
+
+def test_matrix_missing_source_raises(tmp_path):
+    repos = _write_repos(tmp_path, (
+        "repositories:\n"
+        "  - name: incomplete\n"
+        "    git: https://example.com/incomplete.git\n"
+    ))
+    with pytest.raises(ValueError):
+        generate_matrix.build_matrix(repos, "AAA", "AAA", [], None)
+
+
+# ── config integrity: the real repos.yaml + vertx-cors-abstract-base repro ────
+
+_REPO_ROOT = HERE.parent
+
+
+def test_real_repos_yaml_builds_matrix():
+    """The committed projects/repos.yaml must expand without error (catches a
+    malformed entry — e.g. a local project missing both `path` and `git`)."""
+    repos = _REPO_ROOT / "projects" / "repos.yaml"
+    m = generate_matrix.build_matrix(repos, "AAA", "AAA", [], None)
+    assert m["include"], "expected at least one project in repos.yaml"
+
+
+def test_vertx_cors_repro_entry_and_paths_exist():
+    """The vertx-cors-abstract-base local repro must be wired correctly: a
+    `path` entry whose project dir, ruleset, and every `{ext}` dataflow path
+    referenced in scan-flags actually exist on disk."""
+    repos = _REPO_ROOT / "projects" / "repos.yaml"
+    m = generate_matrix.build_matrix(repos, "AAA", "AAA", [], None)
+    entries = [e for e in m["include"] if e["project"] == "vertx-cors-abstract-base"]
+    assert len(entries) == 1, "vertx-cors-abstract-base must appear exactly once"
+    e = entries[0]
+
+    # Sourced locally, not from git.
+    assert e["git"] == "" and e["head"] == generate_matrix.LOCAL_HEAD
+    assert e["path"] == "projects/local/vertx-cors-abstract-base"
+
+    # Project dir is a real, buildable Gradle project (wrapper committed).
+    proj = _REPO_ROOT / e["path"]
+    assert (proj / "build.gradle.kts").is_file()
+    assert (proj / "gradlew").is_file()
+    assert (proj / "gradle" / "wrapper" / "gradle-wrapper.jar").is_file()
+    assert (proj / "src" / "main" / "kotlin" / "test" / "CorsVerticle.kt").is_file()
+    assert (proj / "src" / "main" / "kotlin" / "test" / "VertxCors.kt").is_file()
+
+    # Every `{ext}/...` path token in scan-flags resolves to an existing path
+    # under projects/extensions/ (the directory mounted as {ext} in CI).
+    ext_root = _REPO_ROOT / "projects" / "extensions"
+    ext_tokens = [t for t in e["scan_flags"] if t.startswith("{ext}/")]
+    assert ext_tokens, "expected {ext} references in scan-flags"
+    for tok in ext_tokens:
+        resolved = ext_root / tok[len("{ext}/"):]
+        assert resolved.exists(), f"scan-flags references missing path: {tok}"
+
+    # The join rule keeps its relative refs to java/lib/generic/*, so that
+    # layout must be preserved under the ruleset directory.
+    rules = ext_root / "vertx-cors-abstract-base" / "rules"
+    assert (rules / "java" / "security" / "csrf-vertx-cors-reflection-lib-ext.yaml").is_file()
+    assert (rules / "java" / "lib" / "generic" / "vertx-untrusted-data-source.yaml").is_file()
+    assert (rules / "java" / "lib" / "generic" / "vertx-cors-reflection-sink.yaml").is_file()
+
+
 # ── run_analysis: scan-flag expansion ────────────────────────────────
 
 def test_expand_scan_flags_substitutes_ext(tmp_path):

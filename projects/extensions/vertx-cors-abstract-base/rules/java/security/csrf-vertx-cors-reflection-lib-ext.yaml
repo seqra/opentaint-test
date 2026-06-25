@@ -1,0 +1,26 @@
+rules:
+  - id: csrf-vertx-cors-reflection-lib-ext
+    severity: ERROR
+    message: >-
+      Potential CORS misconfiguration: an untrusted request value (e.g. the Origin header)
+      is reflected into the Access-Control-Allow-Origin response header. Reflecting an
+      attacker-controlled origin effectively allows any site to make credentialed
+      cross-origin requests, enabling CSRF-style attacks. Echo only origins from a strict
+      allowlist instead of reflecting the request value.
+    metadata:
+      cwe: CWE-942
+      short-description: Reflected Origin into Access-Control-Allow-Origin (CORS/CSRF)
+      references:
+        - https://portswigger.net/web-security/cors
+      provenance: codex-reproduction finding 4 (Origin reflection into ACAO)
+    languages:
+      - java
+    mode: join
+    join:
+      refs:
+        - rule: java/lib/generic/vertx-untrusted-data-source.yaml#vertx-untrusted-data-source
+          as: vertx-untrusted-data
+        - rule: java/lib/generic/vertx-cors-reflection-sink.yaml#vertx-cors-reflection-sink
+          as: sink
+      on:
+        - 'vertx-untrusted-data.$UNTRUSTED -> sink.$UNTRUSTED'

@@ -2,6 +2,8 @@ __pycache__/
 *.pyc
 .pytest_cache/
 build/
+# Gradle scratch dir created when a local project (projects/local/*) is built.
+.gradle/
 results-bundle/
 diff/
 report.md

@@ -41,6 +41,7 @@ Full diff detail is available in the `regression-diff` artifact.
 | `.github/workflows/regression.yaml` | Workflow: resolve → probe → build → analyze → compare.     |
 | `projects/repos.yaml`             | Benchmark project list (name, git URL, pinned head, etc.).   |
 | `projects/extensions/`            | Files (passthroughs, approximations, custom rules…) referenced by per-project `scan-flags`. |
+| `projects/local/`                 | In-repo synthetic projects scanned in-place via a `path:` entry (no upstream git URL). |
 | `scripts/build_opentaint.sh`      | Build analyzer + autobuilder JARs and Go CLI from a checkout.|
 | `scripts/generate_matrix.py`      | Expand `repos.yaml` into a GH Actions matrix.                |
 | `scripts/run_analysis.py`         | Run opentaint `compile` + `scan`, extract analyzer status.   |
@@ -51,8 +52,19 @@ Full diff detail is available in the `regression-diff` artifact.
 
 ## Per-project fields (`repos.yaml`)
 
-Each entry requires `name`, `git`, and `head` (a pinned commit/tag SHA). These
-optional fields tune one project:
+Each entry requires `name` plus a **source**, which is one of (mutually
+exclusive):
+
+- `git` (clone URL) **and** `head` (a pinned commit/tag SHA) — an upstream
+  project the workflow clones at analysis time; **or**
+- `path` — a directory inside this repo (conventionally under
+  `projects/local/`) scanned in-place, for synthetic repros with no upstream
+  URL. Local projects are built by the autobuilder just like cloned ones, so a
+  buildable project (e.g. a committed Gradle/Maven wrapper) is required. They
+  use a constant `local` as their cache `project-head` — content changes are
+  already captured by the test-system SHA in the cache key (see *Caching*).
+
+These optional fields tune one project:
 
 | Field          | Default | Purpose                                                      |
 | -------------- | ------- | ------------------------------------------------------------ |

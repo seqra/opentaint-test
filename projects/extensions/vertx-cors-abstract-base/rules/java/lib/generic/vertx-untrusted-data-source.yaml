@@ -1,0 +1,84 @@
+rules:
+  - id: vertx-untrusted-data-source
+    options:
+      lib: true
+    severity: NOTE
+    message: Untrusted data flows from here
+    metadata:
+      short-description: Untrusted data source in Vert.x-Web request handlers
+      full-description: |-
+        This is a source rule for untrusted input in Vert.x-Web (vertx-web) and
+        Vert.x core HTTP (vertx-core) request handling code paths. It marks the
+        return value of request accessor methods as tainted, because those values
+        are derived from attacker-controlled HTTP request data.
+
+        Typical source locations matched by this rule include:
+        - `RoutingContext` query/path parameter and request-body accessors
+          (`queryParam`, `pathParam`, `getBodyAsJson`, `getBodyAsJsonArray`,
+          `getBodyAsString`, `getBody`) and `request()`.
+        - `HttpServerRequest` request-line and header accessors (`getParam`,
+          `params`, `path`, `uri`, `absoluteURI`, `getHeader`, `headers`, `host`).
+        - Client-supplied multipart upload metadata (`FileUpload.fileName`,
+          `FileUpload.uploadedFileName`).
+
+        Example source usage (tainted):
+
+        ```java
+        import io.vertx.ext.web.RoutingContext;
+
+        void handle(RoutingContext ctx) {
+            String path = ctx.queryParam("path").get(0); // source: untrusted
+            serveFile(path);
+        }
+        ```
+
+        Recommended handling at the boundary:
+        - Treat all request-derived values as untrusted by default.
+        - Validate expected shape (type, length, charset, allowlist) as early as possible.
+        - Normalize and map external input to typed internal models before unsafe usage.
+    languages:
+      - java
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $UNTRUSTED = (io.vertx.ext.web.RoutingContext $CTX).queryParam(...);
+          - pattern: |
+              $UNTRUSTED = (io.vertx.ext.web.RoutingContext $CTX).pathParam(...);
+          - pattern: |
+              $UNTRUSTED = (io.vertx.ext.web.RoutingContext $CTX).getBodyAsJson(...);
+          - pattern: |
+              $UNTRUSTED = (io.vertx.ext.web.RoutingContext $CTX).getBodyAsJsonArray(...);
+          - pattern: |
+              $UNTRUSTED = (io.vertx.ext.web.RoutingContext $CTX).getBodyAsString(...);
+          - pattern: |
+              $UNTRUSTED = (io.vertx.ext.web.RoutingContext $CTX).getBody(...);
+          - pattern: |
+              $UNTRUSTED = (io.vertx.ext.web.RoutingContext $CTX).request(...);
+          - pattern: |
+              $UNTRUSTED = (io.vertx.ext.web.FileUpload $FU).fileName(...);
+          - pattern: |
+              $UNTRUSTED = (io.vertx.ext.web.FileUpload $FU).uploadedFileName(...);
+          - pattern: |
+              $UNTRUSTED = (io.vertx.core.http.HttpServerRequest $REQ).getParam(...);
+          - pattern: |
+              $UNTRUSTED = (io.vertx.core.http.HttpServerRequest $REQ).params(...);
+          - pattern: |
+              $UNTRUSTED = (io.vertx.core.http.HttpServerRequest $REQ).path(...);
+          - pattern: |
+              $UNTRUSTED = (io.vertx.core.http.HttpServerRequest $REQ).uri(...);
+          - pattern: |
+              $UNTRUSTED = (io.vertx.core.http.HttpServerRequest $REQ).absoluteURI(...);
+          - pattern: |
+              $UNTRUSTED = (io.vertx.core.http.HttpServerRequest $REQ).getHeader(...);
+          - pattern: |
+              $UNTRUSTED = (io.vertx.core.http.HttpServerRequest $REQ).headers(...);
+          - pattern: |
+              $UNTRUSTED = (io.vertx.core.http.HttpServerRequest $REQ).host(...);
+          - pattern: $UNTRUSTED = (io.vertx.ext.web.RoutingContext $CTX).request(...).getParam(...)
+          - pattern: $UNTRUSTED = (io.vertx.ext.web.RoutingContext $CTX).request(...).params(...)
+          - pattern: $UNTRUSTED = (io.vertx.ext.web.RoutingContext $CTX).request(...).path(...)
+          - pattern: $UNTRUSTED = (io.vertx.ext.web.RoutingContext $CTX).request(...).uri(...)
+          - pattern: $UNTRUSTED = (io.vertx.ext.web.RoutingContext $CTX).request(...).absoluteURI(...)
+          - pattern: $UNTRUSTED = (io.vertx.ext.web.RoutingContext $CTX).request(...).getHeader(...)
+          - pattern: $UNTRUSTED = (io.vertx.ext.web.RoutingContext $CTX).request(...).headers(...)
+          - pattern: $UNTRUSTED = (io.vertx.ext.web.RoutingContext $CTX).request(...).host(...)

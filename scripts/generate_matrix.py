@@ -8,11 +8,15 @@ restricts the project set (substring match against project name). Optional
 Output JSON shape (printed to stdout):
 
     {"include": [
-        {"project": "spring-petclinic", "git": "...", "head": "...",
+        {"project": "spring-petclinic", "git": "...", "head": "...", "path": "",
          "java_version": "17", "max_memory": "8G", "compilation_timeout": "1200",
          "ref_kind": "base", "analyzer_sha": "<sha>"},
         ...
     ]}
+
+A project is sourced either from an upstream git repo (``git`` + ``head``) or
+from an in-repo local directory (``path``). Local entries emit an empty ``git``
+and ``head: "local"`` (see ``LOCAL_HEAD``); git entries emit an empty ``path``.
 """
 
 from __future__ import annotations
@@ -27,6 +31,36 @@ import yaml
 DEFAULT_JAVA = "17"
 DEFAULT_MEMORY = "8G"
 DEFAULT_COMPILATION_TIMEOUT = "1200"
+
+# Cache-key `project-head` component for local (in-repo) projects, which have no
+# upstream commit. Content changes are already covered by the test-system SHA in
+# the cache key (the project lives in this repo), so a constant is sufficient.
+# Must be a valid cache-key component (no "/" or whitespace; see cache_key.py).
+LOCAL_HEAD = "local"
+
+
+def _resolve_source(repo: dict) -> tuple[str, str, str]:
+    """Return ``(git, head, path)`` for one repo entry.
+
+    A project is sourced EITHER from an upstream git repo (``git`` + ``head``)
+    OR from an in-repo local directory (``path``); the two are mutually
+    exclusive. Local projects emit an empty ``git`` and the ``LOCAL_HEAD``
+    sentinel as ``head``; git projects emit an empty ``path``. Every matrix
+    entry therefore carries all three keys, so the workflow can branch on
+    whether ``path`` is set.
+    """
+    name = repo["name"]
+    has_path = bool(repo.get("path"))
+    has_git = "git" in repo or "head" in repo
+    if has_path:
+        if has_git:
+            raise ValueError(
+                f"{name}: 'path' is mutually exclusive with 'git'/'head'")
+        return "", LOCAL_HEAD, str(repo["path"])
+    if "git" not in repo or "head" not in repo:
+        raise ValueError(
+            f"{name}: must specify either 'path' or both 'git' and 'head'")
+    return str(repo["git"]), str(repo["head"]), ""
 
 
 def _matches_filter(name: str, patterns: list[str]) -> bool:
@@ -71,13 +105,15 @@ def build_matrix(repos_path: Path, base_sha: str, new_sha: str,
         name = repo["name"]
         if not _matches_filter(name, projects_filter):
             continue
+        git, head, path = _resolve_source(repo)
         for ref_kind, sha in refs:
             if misses_only and (name, ref_kind) not in misses:
                 continue
             include.append({
                 "project": name,
-                "git": repo["git"],
-                "head": repo["head"],
+                "git": git,
+                "head": head,
+                "path": path,
                 "java_version": str(repo.get("java-version", DEFAULT_JAVA)),
                 "max_memory": str(repo.get("max-memory", DEFAULT_MEMORY)),
                 "compilation_timeout": str(

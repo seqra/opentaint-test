@@ -133,3 +133,19 @@ repositories:
       - builtin
       - --ruleset
       - "{ext}/conductor/rules"
+
+  # Local synthetic repro (no upstream git URL): scanned in-place from this repo
+  # via `path`. Reproduces the "Vert.x verticle start() in an ABSTRACT base class
+  # is not auto-discovered as an entry point" issue (see issue.md). Loads only the
+  # three CORS rules + the handler/launch dataflow approximations so the finding
+  # set is exactly the CORS flows; on the buggy engine the abstract-base case
+  # (CorsVerticleBase.start) is the one expected NON-firing flow.
+  - name: vertx-cors-abstract-base
+    path: projects/local/vertx-cors-abstract-base
+    scan-flags:
+      - --dataflow-approximations
+      - "{ext}/vertx-cors-abstract-base/dataflow/vertx-handlers"
+      - --dataflow-approximations
+      - "{ext}/vertx-cors-abstract-base/dataflow/kotlinx-coroutines-launch"
+      - --ruleset
+      - "{ext}/vertx-cors-abstract-base/rules"

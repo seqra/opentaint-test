@@ -281,10 +281,20 @@ jobs:
           name: build-${{ matrix.analyzer_sha }}
           path: build
       - run: chmod +x build/opentaint
-      - name: Clone project
+      - name: Prepare project
+        id: proj
         run: |
-          git clone --filter=blob:none "${{ matrix.git }}" project-root
-          git -C project-root checkout "${{ matrix.head }}"
+          set -euo pipefail
+          if [ -n "${{ matrix.path }}" ]; then
+            # Local (in-repo) project: already present in the checked-out repo.
+            dir="${{ matrix.path }}"
+            test -d "$dir" || { echo "::error::local project path not found: $dir"; exit 1; }
+          else
+            git clone --filter=blob:none "${{ matrix.git }}" project-root
+            git -C project-root checkout "${{ matrix.head }}"
+            dir="project-root"
+          fi
+          echo "dir=$dir" >> "$GITHUB_OUTPUT"
       - name: Compute cache key
         id: k
         run: |
@@ -302,7 +312,7 @@ jobs:
           set +e
           python scripts/run_analysis.py \
             --build-dir       build \
-            --project-dir     project-root \
+            --project-dir     "${{ steps.proj.outputs.dir }}" \
             --results-dir     results-bundle \
             --max-memory      "${{ matrix.max_memory }}" \
             --timeout         "${{ matrix.compilation_timeout }}" \

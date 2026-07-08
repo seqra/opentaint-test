@@ -282,6 +282,7 @@ jobs:
           path: build
       - run: chmod +x build/opentaint
       - name: Clone project
+        if: matrix.kind == 'git'
         run: |
           git clone --filter=blob:none "${{ matrix.git }}" project-root
           git -C project-root checkout "${{ matrix.head }}"
@@ -302,7 +303,7 @@ jobs:
           set +e
           python scripts/run_analysis.py \
             --build-dir       build \
-            --project-dir     project-root \
+            --project-dir     "${{ matrix.kind == 'git' && 'project-root' || matrix.source }}" \
             --results-dir     results-bundle \
             --max-memory      "${{ matrix.max_memory }}" \
             --timeout         "${{ matrix.compilation_timeout }}" \

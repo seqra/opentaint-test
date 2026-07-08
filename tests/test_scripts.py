@@ -303,6 +303,72 @@ def test_matrix_scan_flags_rejects_non_list(tmp_path):
         generate_matrix.build_matrix(repos, "AAA", "AAA", [], None)
 
 
+# ── generate_matrix: local (kind) projects ───────────────────────────────────
+
+def test_matrix_git_entry_emits_kind_and_empty_source(tmp_path):
+    repos = _write_repos(tmp_path, (
+        "repositories:\n"
+        "  - name: demo\n"
+        "    git: https://example.com/demo.git\n"
+        "    head: deadbeef\n"
+    ))
+    m = generate_matrix.build_matrix(repos, "AAA", "AAA", [], None)
+    cell = m["include"][0]
+    assert cell["kind"] == "git"
+    assert cell["git"] == "https://example.com/demo.git"
+    assert cell["head"] == "deadbeef"
+    assert cell["source"] == ""
+
+
+def test_matrix_local_entry_shape(tmp_path):
+    repos = _write_repos(tmp_path, (
+        "repositories:\n"
+        "  - name: repro-01\n"
+        "    kind: local\n"
+        "    source: projects/repro-kits/01-reflect-method-invoke\n"
+        "    java-version: 21\n"
+    ))
+    m = generate_matrix.build_matrix(repos, "AAA", "AAA", [], None)
+    cell = m["include"][0]
+    assert cell["kind"] == "local"
+    assert cell["source"] == "projects/repro-kits/01-reflect-method-invoke"
+    # Local cells clone nothing and use the constant head sentinel.
+    assert cell["git"] == ""
+    assert cell["head"] == generate_matrix.LOCAL_HEAD_SENTINEL == "local"
+    assert cell["java_version"] == "21"
+
+
+def test_matrix_local_missing_source_raises(tmp_path):
+    repos = _write_repos(tmp_path, (
+        "repositories:\n"
+        "  - name: repro-01\n"
+        "    kind: local\n"
+    ))
+    with pytest.raises(ValueError):
+        generate_matrix.build_matrix(repos, "AAA", "AAA", [], None)
+
+
+def test_matrix_git_missing_head_raises(tmp_path):
+    repos = _write_repos(tmp_path, (
+        "repositories:\n"
+        "  - name: demo\n"
+        "    git: https://example.com/demo.git\n"
+    ))
+    with pytest.raises(ValueError):
+        generate_matrix.build_matrix(repos, "AAA", "AAA", [], None)
+
+
+def test_matrix_unknown_kind_raises(tmp_path):
+    repos = _write_repos(tmp_path, (
+        "repositories:\n"
+        "  - name: demo\n"
+        "    kind: svn\n"
+        "    source: whatever\n"
+    ))
+    with pytest.raises(ValueError):
+        generate_matrix.build_matrix(repos, "AAA", "AAA", [], None)
+
+
 # ── run_analysis: scan-flag expansion ────────────────────────────────
 
 def test_expand_scan_flags_substitutes_ext(tmp_path):

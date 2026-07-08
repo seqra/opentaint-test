@@ -1,0 +1,15 @@
+rules:
+  - id: repro-source-to-sink
+    severity: ERROR
+    message: Tainted value from Repro.source() reached Repro.sink()
+    metadata:
+      short-description: Stored functional-interface devirtualization repro source-to-sink flow
+    languages:
+      - java
+    mode: taint
+    pattern-sources:
+      - pattern: com.example.repro.Repro.source()
+    pattern-sinks:
+      - patterns:
+          - pattern: com.example.repro.Repro.sink($VALUE)
+          - focus-metavariable: $VALUE

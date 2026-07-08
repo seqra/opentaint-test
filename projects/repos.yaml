@@ -133,3 +133,41 @@ repositories:
       - builtin
       - --ruleset
       - "{ext}/conductor/rules"
+
+  # ── Repro kits ─────────────────────────────────────────────────────────────
+  # Self-contained OpenTaint engine-limitation reproductions, vendored as local
+  # (in-repo) buildable Gradle projects. The autobuilder builds them like any
+  # cloned project; rules + dataflow approximations live under
+  # projects/extensions/repro-<NN> and are referenced via {ext}. Each reproduces
+  # a false negative today, so it PASSES base-vs-new until a ref changes the
+  # engine's behaviour, at which point the finding-count delta FAILs the project.
+
+  - name: repro-01-reflect-method-invoke
+    kind: local
+    source: projects/repro-kits/01-reflect-method-invoke
+    java-version: 21
+    scan-flags:
+      - --ruleset
+      - "{ext}/repro-01/rules"
+
+  - name: repro-02-recursive-approximation-dispatch
+    kind: local
+    source: projects/repro-kits/02-recursive-approximation-dispatch
+    java-version: 21
+    scan-flags:
+      - --dataflow-approximations
+      - "{ext}/repro-02/approximations/src"
+      - --ruleset
+      - "{ext}/repro-02/rules/approximation-rule.yaml"
+      - --track-external-methods
+
+  - name: repro-03-stored-functional-interface-devirt
+    kind: local
+    source: projects/repro-kits/03-stored-functional-interface-devirt
+    java-version: 21
+    scan-flags:
+      - --dataflow-approximations
+      - "{ext}/repro-03/approximations/src"
+      - --ruleset
+      - "{ext}/repro-03/rules"
+      - --track-external-methods

@@ -1,0 +1,15 @@
+rules:
+  - id: approximation-rule
+    severity: ERROR
+    message: Tainted value from app.Taint.source() reached app.Taint.sink() through an approximated *.of(Function) lambda invoker
+    metadata:
+      short-description: Recursive approximation dispatch repro (source -> sink through nested *.of lambda)
+    languages:
+      - java
+    mode: taint
+    pattern-sources:
+      - pattern: app.Taint.source()
+    pattern-sinks:
+      - patterns:
+          - pattern: app.Taint.sink($VALUE)
+          - focus-metavariable: $VALUE

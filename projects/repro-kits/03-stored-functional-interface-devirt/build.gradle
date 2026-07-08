@@ -1,0 +1,20 @@
+// Repro kit 03 — stored functional-interface devirtualization via a static field.
+//
+// A Java project the OpenTaint autobuilder (`opentaint compile`) builds like
+// any cloned benchmark project. The stand-in "external" cache library
+// (com.standin.cache.Cache / Loader) enters the build as a COMPILED JAR —
+// never as source — so OpenTaint treats it as an external dependency and DROPS
+// it; the dataflow approximation under projects/extensions/repro-03 re-models
+// build/get, and that drop is the mechanism the reproduced bug lives in.
+plugins {
+    id 'java'
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
+}
+
+dependencies {
+    implementation files('libs/standin-cache.jar')
+}

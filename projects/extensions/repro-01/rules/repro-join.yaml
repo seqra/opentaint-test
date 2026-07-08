@@ -1,0 +1,23 @@
+rules:
+  - id: repro-reflect-source-to-sink
+    severity: ERROR
+    message: Untrusted data from repro.Repro.source() reaches repro.Repro.sink()
+    metadata:
+      cwe: CWE-noinfo
+      short-description: Repro source-to-sink flow (reflection-gap demonstration)
+      full-description: |-
+        Security join that merges the repro source and sink into a source->sink
+        taint rule. Modeled on the project's security join rules under
+        .opentaint/rules/java/security. Fires on the direct-call control flow;
+        the Method#invoke reflective flow is a false negative (engine gap).
+    languages:
+      - java
+    mode: join
+    join:
+      refs:
+        - rule: repro-source.yaml#repro-reflect-source
+          as: source
+        - rule: repro-sink.yaml#repro-reflect-sink
+          as: sink
+      on:
+        - 'source.$UNTRUSTED -> sink.$UNTRUSTED'

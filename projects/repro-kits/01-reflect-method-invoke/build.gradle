@@ -1,0 +1,14 @@
+// Repro kit 01 — java.lang.reflect.Method#invoke reflective-dispatch gap.
+//
+// A plain, JDK-only Java project so the OpenTaint autobuilder (`opentaint
+// compile`) builds it exactly like any cloned benchmark project. No external
+// dependencies. The taint source/sink/join rules live under
+// projects/extensions/repro-01 and are passed via `scan-flags` in repos.yaml.
+plugins {
+    id 'java'
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
+}

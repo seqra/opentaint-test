@@ -1,0 +1,19 @@
+rules:
+  - id: repro-reflect-sink
+    options:
+      lib: true
+    severity: NOTE
+    message: Untrusted value flows into repro.Repro.sink()
+    metadata:
+      short-description: Repro taint sink repro.Repro.sink($UNTRUSTED)
+      full-description: |-
+        Sink rule for the reproduction kit. Any value reaching the argument of
+        repro.Repro.sink(Object) is a sink. Modeled on the project's
+        *-injection-sinks lib rules (focus-metavariable on the tainted arg).
+    languages:
+      - java
+    mode: taint
+    pattern-sinks:
+      - patterns:
+          - pattern: repro.Repro.sink($UNTRUSTED)
+          - focus-metavariable: $UNTRUSTED

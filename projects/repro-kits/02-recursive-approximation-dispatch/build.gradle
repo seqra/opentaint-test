@@ -1,0 +1,20 @@
+// Repro kit 02 — recursive same-approximation lambda-dispatch cut.
+//
+// A Java project the OpenTaint autobuilder (`opentaint compile`) builds like
+// any cloned benchmark project. The stand-in "external" builder library
+// (lib.X / lib.Y) enters the build as a COMPILED JAR — never as source — so
+// OpenTaint treats lib.* as an external dependency and DROPS it; the dataflow
+// approximations under projects/extensions/repro-02 re-model lib.X.of /
+// lib.Y.of, and that drop is the mechanism the reproduced bug lives in.
+plugins {
+    id 'java'
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
+}
+
+dependencies {
+    implementation files('libs/standin-lib.jar')
+}

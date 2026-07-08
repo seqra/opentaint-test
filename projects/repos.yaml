@@ -171,3 +171,22 @@ repositories:
       - --ruleset
       - "{ext}/repro-03/rules"
       - --track-external-methods
+
+  # repro-04-nested-capture-sink-eval — a false-negative repro-kit vendored in-repo (kind: local).
+  # Kit: projects/repro-kits/04-nested-capture-sink-eval; extensions: projects/extensions/repro-04.
+  # Verified differential: analyzer 0.4.3 -> 4 findings, dev/0.4.4 -> 3 (misses the nested-flatMap flow).
+  - name: repro-04-nested-capture-sink-eval
+    kind: local
+    source: projects/repro-kits/04-nested-capture-sink-eval
+    java-version: 21
+    scan-flags:
+      - --dataflow-approximations
+      - "{ext}/repro-04/approximations/src"
+      - --ruleset
+      - "{ext}/repro-04/rules"
+      - --track-external-methods
+
+  - name: repro-05-cross-controller-stored-injection
+    kind: local
+    source: projects/repro-kits/05-cross-controller-stored-injection
+    java-version: 21

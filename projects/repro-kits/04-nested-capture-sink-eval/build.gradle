@@ -1,0 +1,21 @@
+plugins {
+    id 'java'
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // reactor-core enters the project model as an EXTERNAL dependency, so OpenTaint drops
+    // reactor.core.publisher.Mono#flatMap and re-models it from the dataflow approximation in
+    // projects/extensions/repro-04/approximations/src (Mono#just / Mono#block use built-in
+    // models). That external drop is the mechanism the reproduced gap lives in: were reactor
+    // vendored as project source it would be analysed directly and the repro would evaporate.
+    implementation 'io.projectreactor:reactor-core:3.8.6'
+}

@@ -1,0 +1,28 @@
+// Repro kit 05 — cross-controller Spring stored-injection gap.
+//
+// A plain Java Spring-MVC + Spring-Data-JPA project so the OpenTaint autobuilder
+// (`opentaint compile`) builds it exactly like any cloned benchmark project.
+// The reproduction uses ONLY built-in rules (Spring @RequestBody source +
+// java-ssrf-sink via `new URL(x).openStream()`), so repos.yaml needs no
+// scan-flags and there are no extensions.
+plugins {
+    id 'java'
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compileOnly 'org.springframework:spring-webmvc:6.2.15'
+    compileOnly 'org.springframework:spring-context:6.2.15'
+    compileOnly 'org.springframework:spring-web:6.2.15'
+    compileOnly 'org.springframework.data:spring-data-jpa:3.5.7'
+    compileOnly 'org.springframework.data:spring-data-commons:3.5.7'
+    compileOnly 'jakarta.persistence:jakarta.persistence-api:3.1.0'
+}

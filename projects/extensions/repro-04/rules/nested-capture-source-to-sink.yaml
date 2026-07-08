@@ -1,0 +1,15 @@
+rules:
+  - id: nested-capture-source-to-sink
+    severity: ERROR
+    message: Tainted value from Taint.source() reached Taint.sink()
+    metadata:
+      short-description: repro-04 nested-lambda-capture source-to-sink flow
+    languages:
+      - java
+    mode: taint
+    pattern-sources:
+      - pattern: test.Taint.source()
+    pattern-sinks:
+      - patterns:
+          - pattern: test.Taint.sink($VALUE)
+          - focus-metavariable: $VALUE

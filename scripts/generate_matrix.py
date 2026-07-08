@@ -5,10 +5,21 @@ Produces matrix entries covering (project × ref) pairs. Optional --filter
 restricts the project set (substring match against project name). Optional
 --misses-only restricts to (project, ref) pairs flagged as cache misses.
 
+A project entry is either:
+
+* ``kind: git`` (the default) — cloned from ``git`` at ``head`` by the
+  workflow, then built by the autobuilder (``opentaint compile``).
+* ``kind: local`` — a buildable project vendored in this repo at ``source``.
+  The workflow skips the clone and points the runner at ``source`` directly;
+  ``opentaint compile`` builds it exactly like a cloned project. Local cells
+  carry ``git: ""`` and the constant ``head: "local"`` (kit-content changes
+  invalidate the cache via the test-system SHA, already part of every key).
+
 Output JSON shape (printed to stdout):
 
     {"include": [
-        {"project": "spring-petclinic", "git": "...", "head": "...",
+        {"project": "spring-petclinic", "kind": "git",
+         "git": "...", "head": "...", "source": "",
          "java_version": "17", "max_memory": "8G", "compilation_timeout": "1200",
          "ref_kind": "base", "analyzer_sha": "<sha>"},
         ...
@@ -27,6 +38,12 @@ import yaml
 DEFAULT_JAVA = "17"
 DEFAULT_MEMORY = "8G"
 DEFAULT_COMPILATION_TIMEOUT = "1200"
+DEFAULT_KIND = "git"
+
+# Cache-key head for local projects. A constant (no `/` or space, so it is a
+# valid cache_key component); kit-content changes still invalidate the cache
+# through the test-system SHA, which is part of every key.
+LOCAL_HEAD_SENTINEL = "local"
 
 
 def _matches_filter(name: str, patterns: list[str]) -> bool:
@@ -50,6 +67,36 @@ def _normalise_scan_flags(raw) -> list[str]:
     return [str(token) for token in raw]
 
 
+def _resolve_identity(repo: dict) -> tuple[str, str, str, str]:
+    """Return ``(kind, git, head, source)`` for one repo entry, validating the
+    fields required by its kind.
+
+    * ``git`` projects must supply ``git`` and ``head``.
+    * ``local`` projects must supply ``source``; they carry ``git: ""`` and the
+      constant ``head`` sentinel.
+
+    Raises ``ValueError`` on an unknown kind or a missing required field, so a
+    misconfigured entry fails the workflow fast instead of producing a matrix
+    cell that breaks further downstream.
+    """
+    name = repo.get("name", "<unnamed>")
+    kind = str(repo.get("kind", DEFAULT_KIND))
+    if kind == "git":
+        git = repo.get("git")
+        head = repo.get("head")
+        if not git or not head:
+            raise ValueError(
+                f"{name}: git project requires both 'git' and 'head'")
+        return kind, str(git), str(head), ""
+    if kind == "local":
+        source = repo.get("source")
+        if not source:
+            raise ValueError(f"{name}: local project requires 'source'")
+        return kind, "", LOCAL_HEAD_SENTINEL, str(source)
+    raise ValueError(
+        f"{name}: unknown kind {kind!r} (expected 'git' or 'local')")
+
+
 def _load_misses(path: str | None) -> set[tuple[str, str]]:
     if not path:
         return set()
@@ -71,13 +118,16 @@ def build_matrix(repos_path: Path, base_sha: str, new_sha: str,
         name = repo["name"]
         if not _matches_filter(name, projects_filter):
             continue
+        kind, git, head, source = _resolve_identity(repo)
         for ref_kind, sha in refs:
             if misses_only and (name, ref_kind) not in misses:
                 continue
             include.append({
                 "project": name,
-                "git": repo["git"],
-                "head": repo["head"],
+                "kind": kind,
+                "git": git,
+                "head": head,
+                "source": source,
                 "java_version": str(repo.get("java-version", DEFAULT_JAVA)),
                 "max_memory": str(repo.get("max-memory", DEFAULT_MEMORY)),
                 "compilation_timeout": str(

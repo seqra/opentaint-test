@@ -17,6 +17,10 @@ on:
         description: Include location columns in finding key
         type: boolean
         default: false
+      compare_code_flows:
+        description: Include SARIF codeFlows in comparison
+        type: boolean
+        default: true
       projects_filter:
         description: Comma-separated substrings; restricts project set
         required: false
@@ -355,8 +359,9 @@ jobs:
           set -u
           mkdir -p diff
           extra=""
-          if [ "${{ inputs.compare_locations }}" = "false" ]; then extra="$extra --no-compare-locations"; fi
-          if [ "${{ inputs.compare_columns }}"  = "true"  ]; then extra="$extra --compare-columns"; fi
+          if [ "${{ inputs.compare_locations }}"  = "false" ]; then extra="$extra --no-compare-locations"; fi
+          if [ "${{ inputs.compare_columns }}"    = "true"  ]; then extra="$extra --compare-columns"; fi
+          if [ "${{ inputs.compare_code_flows }}" = "false" ]; then extra="$extra --no-compare-code-flows"; fi
 
           # Find all distinct project names that have both bundles
           shopt -s nullglob

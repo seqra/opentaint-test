@@ -36,8 +36,8 @@ from pathlib import Path
 CODE_FLOWS_FIELD = "codeFlows"
 RESULTS_FIELD = "results"
 CODE_FLOWS_DIFF_REASON = "codeflows_diff"
-LOC_FIELDS_BASE = ("ruleId", "path", "startLine", "endLine", CODE_FLOWS_FIELD)
-LOC_FIELDS_COLS = ("ruleId", "path", "startLine", "endLine", "startColumn", "endColumn", CODE_FLOWS_FIELD)
+LOC_FIELDS_BASE = ("ruleId", "path", "startLine", "endLine")
+LOC_FIELDS_COLS = ("ruleId", "path", "startLine", "endLine", "startColumn", "endColumn")
 
 
 def _sarif_stats(sarif: dict) -> dict:
@@ -76,19 +76,23 @@ def _extract_findings(sarif: dict) -> list[dict]:
     return findings
 
 
-def _key(f: dict, compare_locations: bool, compare_columns: bool) -> tuple:
-    if not compare_locations:
-        return (f["ruleId"], f.get(CODE_FLOWS_FIELD))
+def _key(f: dict, compare_locations: bool, compare_columns: bool,
+         compare_code_flows: bool) -> tuple:
     fields = LOC_FIELDS_COLS if compare_columns else LOC_FIELDS_BASE
+    if not compare_locations:
+        fields = ("ruleId",)
+    if compare_code_flows:
+        fields += (CODE_FLOWS_FIELD,)
     return tuple(f.get(k) for k in fields)
 
 
 def diff_findings(base: list[dict], new: list[dict],
-                  compare_locations: bool, compare_columns: bool
+                  compare_locations: bool, compare_columns: bool,
+                  compare_code_flows: bool = True
                   ) -> tuple[list[dict], list[dict], int]:
     """Multiset diff. Returns (added, removed, unchanged_count)."""
-    base_keyed = [(_key(f, compare_locations, compare_columns), f) for f in base]
-    new_keyed = [(_key(f, compare_locations, compare_columns), f) for f in new]
+    base_keyed = [(_key(f, compare_locations, compare_columns, compare_code_flows), f) for f in base]
+    new_keyed = [(_key(f, compare_locations, compare_columns, compare_code_flows), f) for f in new]
     base_counts = Counter(k for k, _ in base_keyed)
     new_counts = Counter(k for k, _ in new_keyed)
 
@@ -128,7 +132,8 @@ def _load(p: Path) -> dict:
 
 
 def compare_bundle(project: str, base_dir: Path, new_dir: Path,
-                   compare_locations: bool, compare_columns: bool) -> dict:
+                   compare_locations: bool, compare_columns: bool,
+                   compare_code_flows: bool = True) -> dict:
     base_sarif_path = base_dir / "results.sarif"
     new_sarif_path = new_dir / "results.sarif"
     base_sarif = _load(base_sarif_path)
@@ -160,9 +165,10 @@ def compare_bundle(project: str, base_dir: Path, new_dir: Path,
     new_sarif_stats = _sarif_stats(new_sarif) if new_sarif else {"results": 0, CODE_FLOWS_FIELD: 0}
     results_delta = _metric_delta(base_sarif_stats["results"], new_sarif_stats["results"])
     code_flows_delta = _metric_delta(base_sarif_stats[CODE_FLOWS_FIELD], new_sarif_stats[CODE_FLOWS_FIELD])
-    codeflows_diff = code_flows_delta["delta"] != 0
-    added, removed, unchanged = diff_findings(base_findings, new_findings,
-                                              compare_locations, compare_columns)
+    codeflows_diff = compare_code_flows and code_flows_delta["delta"] != 0
+    added, removed, unchanged = diff_findings(
+        base_findings, new_findings, compare_locations, compare_columns, compare_code_flows
+    )
 
     fail_reasons = []
     if status_regression:
@@ -290,6 +296,7 @@ def main() -> int:
     p_one.add_argument("--output", required=True, type=Path)
     p_one.add_argument("--no-compare-locations", action="store_true")
     p_one.add_argument("--compare-columns", action="store_true")
+    p_one.add_argument("--no-compare-code-flows", action="store_true")
 
     p_agg = sub.add_parser("aggregate", help="aggregate per-project diff JSONs into report")
     p_agg.add_argument("--diff-dir", required=True, type=Path)
@@ -305,6 +312,7 @@ def main() -> int:
             args.project, args.base_dir, args.new_dir,
             compare_locations=not args.no_compare_locations,
             compare_columns=args.compare_columns,
+            compare_code_flows=not args.no_compare_code_flows,
         )
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(json.dumps(result, indent=2))

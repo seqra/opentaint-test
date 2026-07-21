@@ -131,6 +131,28 @@ def test_findings_diff_triggers_fail(tmp_path):
     assert r["counts"]["added"] == 1 and r["counts"]["removed"] == 1
 
 
+def test_code_flows_comparison_can_be_disabled(tmp_path):
+    base = tmp_path / "base"; new = tmp_path / "new"
+    finding = [("r1", "a.java", 1, 1, 0, 0)]
+    _write_bundle(base, finding, status_tags=["complete"])
+    _write_bundle(new, finding, status_tags=["complete"])
+
+    new_sarif_path = new / "results.sarif"
+    new_sarif = json.loads(new_sarif_path.read_text())
+    new_sarif["runs"][0]["results"][0]["codeFlows"] = [{"threadFlows": []}]
+    new_sarif_path.write_text(json.dumps(new_sarif))
+
+    compared = compare_sarif.compare_bundle("proj", base, new, True, False)
+    assert compared["verdict"] == "FAIL"
+    assert "findings_diff" in compared["fail_reasons"]
+
+    ignored = compare_sarif.compare_bundle(
+        "proj", base, new, True, False, compare_code_flows=False
+    )
+    assert ignored["verdict"] == "PASS"
+    assert ignored["codeFlows"]["delta"] == 1
+
+
 def test_scan_error_triggers_fail(tmp_path):
     base = tmp_path / "base"; new = tmp_path / "new"
     _write_bundle(base, [], status_tags=["complete"])

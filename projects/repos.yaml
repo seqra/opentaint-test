@@ -133,3 +133,18 @@ repositories:
       - builtin
       - --ruleset
       - "{ext}/conductor/rules"
+
+  # Deterministic-analysis probe. Vendored (kind: local) rather than cloned:
+  # it exists only to exercise the fact-depth escalation path, so it is 66
+  # generated classes with one dependency and no upstream to pin.
+  #
+  # NOTE: this project is EXPECTED to produce unstable findings until the
+  # quiescence-boundary nondeterminism is fixed (see its README). Two runs of
+  # the same revision can differ, so base-vs-new added/removed counts here are
+  # not a reliable signal of a regression in the ref under test. Treat a
+  # non-zero diff on this project as "nondeterminism still present", not as a
+  # code regression in the compared branch.
+  - name: taint-nondeterminism
+    kind: local
+    source: projects/local/taint-nondeterminism
+    java-version: 21

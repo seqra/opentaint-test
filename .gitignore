@@ -6,3 +6,4 @@ results-bundle/
 diff/
 report.md
 misses.json
+.gradle/

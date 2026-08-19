@@ -123,6 +123,7 @@ repositories:
   - name: conductor
     git: https://github.com/conductor-oss/conductor.git
     head: c466eaf70f3ac16b915120dd651e91aae28451c1
+    max-memory: 16G
     java-version: 21
     scan-flags:
       - --passthrough-approximations

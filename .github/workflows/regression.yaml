@@ -34,7 +34,7 @@ env:
   OPENTAINT_REPO: seqra/opentaint
   PY_VERSION: "3.11"
   JDK_VERSION: "17"
-  GO_VERSION: "1.25.x"
+  GO_VERSION: "1.27.x"
 
 jobs:
 
@@ -220,6 +220,11 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
           cache-dependency-path: opentaint/cli/go.sum
+      - name: Set up protoc (for the Go server)
+        if: matrix.need == 'true'
+        uses: arduino/setup-protoc@v3
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Build
         if: matrix.need == 'true'
         run: bash scripts/build_opentaint.sh opentaint "${{ matrix.sha }}" build
@@ -279,6 +284,11 @@ jobs:
         with:
           java-version: ${{ matrix.java_version }}
           distribution: temurin
+      - name: Set up Go (for project compile)
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go_version }}
+          cache: false
       - name: Download build artifact
         uses: actions/download-artifact@v4
         with:
@@ -289,6 +299,15 @@ jobs:
         run: |
           git clone --filter=blob:none "${{ matrix.git }}" project-root
           git -C project-root checkout "${{ matrix.head }}"
+      - name: Download Go modules
+        # Before the scan, so that the downloads do not count as scan time. A
+        # module inside another module is skipped, as the autobuilder skips it.
+        run: |
+          find project-root -name go.mod -not -path '*/.*' -printf '%h\n' | sort | while read -r dir; do
+            case "$dir/" in "${last:-//}/"*) continue ;; esac
+            last=$dir
+            (cd "$dir" && go mod download) || echo "::warning::go mod download failed in $dir"
+          done
       - name: Compute cache key
         id: k
         run: |

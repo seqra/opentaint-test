@@ -107,6 +107,27 @@ _MAVEN_RESILIENCE_PROPS = [
 ]
 
 
+# Environment variable that points the CLI at a Go server binary instead of
+# the released one it would download. A CLI without Go support ignores it.
+GO_SERVER_ENV = "OPENTAINT_GO_SERVER_BINARY"
+
+
+def go_server_env(go_server: Path) -> dict[str, str] | None:
+    """Return the scan environment that makes the CLI use the staged Go server,
+    or None (the inherited environment) when the build has none.
+
+    The Go server is built from the revision under test, like the analyzer.
+    A build of a revision without it has no Go server, and its scans run as
+    before. The artifact upload drops the executable bit, so it is restored.
+    """
+    if not go_server.is_file():
+        return None
+    go_server.chmod(go_server.stat().st_mode | 0o111)
+    env = os.environ.copy()
+    env[GO_SERVER_ENV] = str(go_server.resolve())
+    return env
+
+
 def maven_resilient_env() -> dict[str, str]:
     """Return a copy of the current environment with ``MAVEN_OPTS`` augmented by
     the download-resilience system properties in ``_MAVEN_RESILIENCE_PROPS``.
@@ -306,6 +327,7 @@ def run_pipeline(build_dir: Path, project_dir: Path, results_dir: Path,
     analyzer_jar = build_dir / "opentaint-project-analyzer.jar"
     autobuilder_jar = build_dir / "opentaint-project-auto-builder.jar"
     rules_dir = build_dir / "rules"
+    go_server = build_dir / "go-ssa-server"
 
     for p in (opentaint, analyzer_jar, autobuilder_jar, rules_dir):
         if not p.exists():
@@ -350,7 +372,8 @@ def run_pipeline(build_dir: Path, project_dir: Path, results_dir: Path,
         with run_log.open("w") as log_fp:
             # Only the compile step shells out to the project's build tool
             # (Maven), so the download-resilience env is scoped to it; the scan
-            # step is pure opentaint and inherits the default environment.
+            # step is pure opentaint and inherits the default environment, plus
+            # the path of the staged Go server.
             rc, out, err, _ = _run(compile_cmd, timeout, log_fp,
                                     env=maven_resilient_env())
             if rc != 0:
@@ -360,7 +383,8 @@ def run_pipeline(build_dir: Path, project_dir: Path, results_dir: Path,
                 status["reason"] = f"compile failed rc={rc}: {msg}"
                 return status
 
-            rc, out, err, scan_dur = _run(scan_cmd, timeout, log_fp)
+            rc, out, err, scan_dur = _run(scan_cmd, timeout, log_fp,
+                                          env=go_server_env(go_server))
             status["scan_seconds"] = round(scan_dur, 1)
             status["analyzer_status"] = extract_analyzer_status(analyzer_log_dst)
             status["peak_memory_bytes"] = extract_peak_memory(analyzer_log_dst)

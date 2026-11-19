@@ -119,8 +119,8 @@ take a single file or a whole directory, and may be repeated):
 ```
 
 Flags reserved by the runner (`--analyzer-jar`, `--project-model`,
-`--output`, `--timeout`, `--max-memory`, `--debug`, `--experimental`) must
-not be repeated here. `--ruleset` is **not** reserved — if `scan-flags`
+`--output`, `--log-file`, `--timeout`, `--max-memory`, `--debug`,
+`--experimental`) must not be repeated here. `--ruleset` is **not** reserved — if `scan-flags`
 contains no `--ruleset`, the runner inserts a default pointing at the
 staged source-tree rule pack at `<build>/rules` (copied from
 `opentaint/rules/ruleset` at build time). Supplying any `--ruleset` value

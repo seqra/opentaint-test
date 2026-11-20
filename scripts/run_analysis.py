@@ -5,7 +5,7 @@ Writes:
     <results-dir>/results.sarif     — SARIF output (may be partial on error)
     <results-dir>/status.json       — {"status": "ok"|"error", "analyzer_status": [...], "reason": "...",
                                         "scan_seconds": float|null, "peak_memory_bytes": int|null}
-    <results-dir>/analyzer.log      — analyzer log copied from opentaint, if found
+    <results-dir>/analyzer.log      — analyzer log, written by `opentaint scan --log-file`
     <results-dir>/run.log           — our own compile+scan stdout/stderr
 
 Usage:
@@ -121,7 +121,6 @@ def maven_resilient_env() -> dict[str, str]:
     return env
 
 
-_LOG_FILE_RE = re.compile(r"Log file:\s*(.+\.log)")
 # Analyzer prints a periodic sample like:
 #   ... Memory usage: 21792087928/30064771072 (72,48%)
 # We take the max of the "used" figure as the run's peak. Absent on runs that
@@ -167,20 +166,6 @@ def extract_peak_memory(analyzer_log: Path | None) -> int | None:
         return None
     used = [int(m.group(1)) for m in _MEM_USAGE_RE.finditer(content)]
     return max(used) if used else None
-
-
-def _copy_analyzer_log(stdout: str, dest: Path) -> Path | None:
-    m = _LOG_FILE_RE.search(stdout or "")
-    if not m:
-        return None
-    src = Path(m.group(1).strip())
-    if not src.is_file():
-        return None
-    try:
-        shutil.copy2(src, dest)
-        return dest
-    except OSError:
-        return None
 
 
 def _run(cmd: list[str], timeout: int, log_fp,
@@ -276,8 +261,8 @@ def _resolve_builtin_ruleset(flags: list[str], rules_dir: Path) -> list[str]:
 
 
 def _build_scan_cmd(opentaint: Path, analyzer_jar: Path, rules_dir: Path,
-                    model_dir: Path, sarif: Path, max_memory: str,
-                    scan_timeout_seconds: int,
+                    model_dir: Path, sarif: Path, log_file: Path,
+                    max_memory: str, scan_timeout_seconds: int,
                     extra_flags: list[str]) -> list[str]:
     """Assemble the ``opentaint scan`` argv.
 
@@ -305,6 +290,7 @@ def _build_scan_cmd(opentaint: Path, analyzer_jar: Path, rules_dir: Path,
         *ruleset_args,
         "--project-model", str(model_dir),
         "--output", str(sarif),
+        "--log-file", str(log_file),
         "--timeout", f"{scan_timeout_seconds}s",
         "--max-memory", max_memory,
         *resolved_flags,
@@ -349,6 +335,7 @@ def run_pipeline(build_dir: Path, project_dir: Path, results_dir: Path,
         rules_dir=rules_dir,
         model_dir=model_dir,
         sarif=sarif,
+        log_file=analyzer_log_dst,
         max_memory=max_memory,
         scan_timeout_seconds=max(timeout - 120, 60),
         extra_flags=expanded_extra_flags,
@@ -375,9 +362,8 @@ def run_pipeline(build_dir: Path, project_dir: Path, results_dir: Path,
 
             rc, out, err, scan_dur = _run(scan_cmd, timeout, log_fp)
             status["scan_seconds"] = round(scan_dur, 1)
-            analyzer_log = _copy_analyzer_log(out, analyzer_log_dst)
-            status["analyzer_status"] = extract_analyzer_status(analyzer_log)
-            status["peak_memory_bytes"] = extract_peak_memory(analyzer_log)
+            status["analyzer_status"] = extract_analyzer_status(analyzer_log_dst)
+            status["peak_memory_bytes"] = extract_peak_memory(analyzer_log_dst)
 
             sarif_written = sarif.exists() and sarif.stat().st_size > 0
             if rc == 0 or sarif_written:

@@ -373,6 +373,7 @@ def _scan_cmd(extra_flags, tmp_path):
         rules_dir=rules_dir,
         model_dir=tmp_path / "model",
         sarif=tmp_path / "out.sarif",
+        log_file=tmp_path / "analyzer.log",
         max_memory="8G",
         scan_timeout_seconds=1080,
         extra_flags=extra_flags,
@@ -446,6 +447,13 @@ def test_build_scan_cmd_extra_flags_appear_after_reserved(tmp_path):
                       "--timeout", "--max-memory", "--debug", "--experimental"):
         assert required in cmd, f"missing reserved flag {required}"
     assert cmd[-2:] == ["--rule-id", "java.taint.sql-injection"]
+
+
+def test_build_scan_cmd_writes_the_analyzer_log(tmp_path):
+    """The runner names the log file itself: the CLI output has no stable
+    line to read the default log path from."""
+    cmd = _scan_cmd([], tmp_path)
+    assert cmd[cmd.index("--log-file") + 1] == str(tmp_path / "analyzer.log")
 
 
 def test_build_scan_cmd_end_to_end_through_expand(tmp_path):

@@ -41,7 +41,7 @@ Full diff detail is available in the `regression-diff` artifact.
 | `.github/workflows/regression.yaml` | Workflow: resolve → probe → build → analyze → compare.     |
 | `projects/repos.yaml`             | Benchmark project list (name, git URL, pinned head, etc.).   |
 | `projects/extensions/`            | Files (passthroughs, approximations, custom rules…) referenced by per-project `scan-flags`. |
-| `scripts/build_opentaint.sh`      | Build analyzer + autobuilder JARs and Go CLI from a checkout.|
+| `scripts/build_opentaint.sh`      | Build analyzer + autobuilder JARs, Go server and Go CLI from a checkout.|
 | `scripts/generate_matrix.py`      | Expand `repos.yaml` into a GH Actions matrix.                |
 | `scripts/run_analysis.py`         | Run opentaint `compile` + `scan`, extract analyzer status.   |
 | `scripts/compare_sarif.py`        | SARIF diff + status regression + verdict + markdown report.  |
@@ -57,6 +57,7 @@ optional fields tune one project:
 | Field          | Default | Purpose                                                      |
 | -------------- | ------- | ------------------------------------------------------------ |
 | `java-version`        | `17`    | JDK the project is compiled against (`actions/setup-java`).  |
+| `go-version`          | `1.27.x` | Go on `PATH` for a Go project (`actions/setup-go`). Not older than the Go of the Go server. |
 | `max-memory`          | `8G`    | Analyzer scan memory ceiling.                                |
 | `compilation-timeout` | `1200`  | Wall-clock seconds for the autobuilder compile step (and, less the usual margin, the scan). Raise for large reactors that pull from slow mirrors (e.g. `ruoyi-vue-pro`, `yudao-cloud`). |
 
@@ -66,6 +67,26 @@ properties (`run_analysis.py:maven_resilient_env`) so a transient mirror hiccup
 the job. A project whose build is deterministically broken at its pinned `head`
 (e.g. an inconsistent dev SNAPSHOT, or a non-Java module that fails to build) is
 commented out with a `QUARANTINED` note explaining the cause.
+
+## Go projects
+
+A Go project needs no extra field: the autobuilder finds its `go.mod`. Both
+opentaint refs must have the Go support of the CLI; with an older ref, the
+compile step of a Go project fails.
+
+- **Go server.** `build_opentaint.sh` builds `go-ssa-server` from the same
+  checkout as the analyzer, and the runner points the CLI at it with
+  `OPENTAINT_GO_SERVER_BINARY`. A ref without the Go server gets none, and a
+  CLI without Go support ignores the variable.
+- **Go version.** The Go server reads only code of its own Go version or
+  older, so the analyze job installs the Go of the server (`go-version`).
+- **Modules.** The analyze job runs `go mod download` before the scan, so that
+  the downloads do not count as scan time.
+- **Nested modules.** The autobuilder takes a module and skips the modules
+  inside it (`kratos`: the root module of 31).
+- **cgo.** A package that needs C headers missing on the runner drops out of
+  the analysis without a warning, with every package that imports it
+  (`goapi`: `bimg` needs `libvips`).
 
 ## Caching
 

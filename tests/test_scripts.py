@@ -609,3 +609,50 @@ repositories:
 """)
     m = generate_matrix.build_matrix(repos, "base", "new", [], None)
     assert {c["compilation_timeout"] for c in m["include"]} == {"2700"}
+
+
+def test_matrix_go_version_default(tmp_path):
+    repos = _write_repos(tmp_path, """
+repositories:
+  - name: demo
+    git: https://example.com/demo.git
+    head: abc
+""")
+    m = generate_matrix.build_matrix(repos, "base", "new", [], None)
+    assert {c["go_version"] for c in m["include"]} == {generate_matrix.DEFAULT_GO}
+
+
+def test_matrix_go_version_override(tmp_path):
+    repos = _write_repos(tmp_path, """
+repositories:
+  - name: oldgo
+    git: https://example.com/oldgo.git
+    head: abc
+    go-version: 1.26.x
+""")
+    m = generate_matrix.build_matrix(repos, "base", "new", [], None)
+    assert {c["go_version"] for c in m["include"]} == {"1.26.x"}
+
+
+# ── run_analysis: staged Go server ─────────────────────────────────────
+
+def test_go_server_env_points_the_cli_at_the_staged_server(tmp_path):
+    """The artifact download drops the executable bit of the staged server."""
+    server = tmp_path / "go-ssa-server"
+    server.write_text("#!/bin/sh\n")
+    server.chmod(0o644)
+    env = run_analysis.go_server_env(server)
+    assert env[run_analysis.GO_SERVER_ENV] == str(server.resolve())
+    assert os.access(server, os.X_OK)
+
+
+def test_go_server_env_keeps_the_inherited_environment(tmp_path, monkeypatch):
+    monkeypatch.setenv("JAVA_HOME", "/opt/jdk")
+    server = tmp_path / "go-ssa-server"
+    server.write_text("#!/bin/sh\n")
+    assert run_analysis.go_server_env(server)["JAVA_HOME"] == "/opt/jdk"
+
+
+def test_go_server_env_without_a_staged_server(tmp_path):
+    """A build of a revision without the Go server scans as before."""
+    assert run_analysis.go_server_env(tmp_path / "go-ssa-server") is None
